@@ -8,13 +8,15 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: banda roja de encabezado con filtros de plaza; debajo, tablero de una columna con secciones apiladas (resumen, captura, mes a mes, comparativa, proyección, movimientos). */
+/* Un solo tema claro: fondo crema salmón aunque el equipo esté en modo oscuro. */
 :root {
-  --bg: #FFFBEE;
-  --surface: #FFFFFF;
-  --surface-2: #FFF3CC;
+  color-scheme: light;
+  --bg: #FCEBDF;
+  --surface: #FFF8F2;
+  --surface-2: #FADBC8;
   --ink: #2B1512;
-  --muted: #7B5B4E;
-  --line: #EEDDB4;
+  --muted: #7B5348;
+  --line: #F0CDB8;
   --red: #C8102E;
   --red-deep: #8E0B20;
   --yellow: #F5B700;
@@ -27,22 +29,6 @@
   --font-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
   --font-data: "JetBrains Mono", ui-monospace, Consolas, monospace;
   --radius: 10px;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #170D0B; --surface: #22140F; --surface-2: #33230D; --ink: #FBEFD8; --muted: #C3A592;
-    --line: #47301F; --red: #FF5A4E; --red-deep: #7E1420; --yellow: #FFC93C; --yellow-ink: #FFD978;
-    --on-red: #FFF1CC; --up: #FF6B5E; --down: #FFD266;
-    --p1: #FF5A4E; --p2: #FFC93C; --p3: #FF8A3D; --p4: #E58CA0;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #170D0B; --surface: #22140F; --surface-2: #33230D; --ink: #FBEFD8; --muted: #C3A592;
-  --line: #47301F; --red: #FF5A4E; --red-deep: #7E1420; --yellow: #FFC93C; --yellow-ink: #FFD978;
-  --on-red: #FFF1CC; --up: #FF6B5E; --down: #FFD266;
-  --p1: #FF5A4E; --p2: #FFC93C; --p3: #FF8A3D; --p4: #E58CA0;
-  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
