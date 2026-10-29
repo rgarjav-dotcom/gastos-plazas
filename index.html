@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gastos Plazas Península</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: banda roja de encabezado con filtros de plaza; debajo, tablero de una columna con secciones apiladas (resumen, captura, mes a mes, comparativa, proyección, movimientos). */
+:root {
+  --bg: #FFFBEE;
+  --surface: #FFFFFF;
+  --surface-2: #FFF3CC;
+  --ink: #2B1512;
+  --muted: #7B5B4E;
+  --line: #EEDDB4;
+  --red: #C8102E;
+  --red-deep: #8E0B20;
+  --yellow: #F5B700;
+  --yellow-ink: #8A5F00;
+  --on-red: #FFF6D6;
+  --up: #C8102E;
+  --down: #8A5F00;
+  --p1: #C8102E; --p2: #F5B700; --p3: #E8590C; --p4: #7A0E1E;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #170D0B; --surface: #22140F; --surface-2: #33230D; --ink: #FBEFD8; --muted: #C3A592;
+    --line: #47301F; --red: #FF5A4E; --red-deep: #7E1420; --yellow: #FFC93C; --yellow-ink: #FFD978;
+    --on-red: #FFF1CC; --up: #FF6B5E; --down: #FFD266;
+    --p1: #FF5A4E; --p2: #FFC93C; --p3: #FF8A3D; --p4: #E58CA0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #170D0B; --surface: #22140F; --surface-2: #33230D; --ink: #FBEFD8; --muted: #C3A592;
+  --line: #47301F; --red: #FF5A4E; --red-deep: #7E1420; --yellow: #FFC93C; --yellow-ink: #FFD978;
+  --on-red: #FFF1CC; --up: #FF6B5E; --down: #FFD266;
+  --p1: #FF5A4E; --p2: #FFC93C; --p3: #FF8A3D; --p4: #E58CA0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--red-deep); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+
+/* Encabezado */
+header.band { background: var(--red-deep); color: var(--on-red); position: relative; overflow: hidden; }
+header.band::after { content: ""; position: absolute; inset: auto 0 0 0; height: 6px; background: repeating-linear-gradient(90deg, var(--yellow) 0 28px, transparent 28px 40px); }
+header .wrap { padding-block: 22px 26px; display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: end; justify-content: space-between; }
+.brand small { display: block; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.brand h1 { font-size: clamp(26px, 4vw, 38px); font-weight: 800; line-height: 1.05; }
+.brand h1 span { color: var(--yellow); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { border: 1.5px solid color-mix(in srgb, var(--on-red) 45%, transparent); background: transparent; color: var(--on-red); padding: 6px 12px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.chip[aria-pressed="true"] { background: var(--yellow); border-color: var(--yellow); color: #2B1512; }
+.chip:hover { border-color: var(--yellow); }
+.yearsel { background: transparent; border: 1.5px solid color-mix(in srgb, var(--on-red) 45%, transparent); color: var(--on-red); border-radius: 999px; padding: 5px 10px; font-weight: 600; }
+.yearsel option { color: #2B1512; background: #FFFFFF; }
+
+main .wrap { padding-block: 24px 60px; display: grid; gap: 28px; }
+.notice { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; background: var(--surface-2); border: 1px dashed var(--yellow); border-radius: var(--radius); padding: 10px 14px; font-size: 14px; }
+.notice[hidden] { display: none !important; }
+
+section { display: grid; gap: 14px; min-width: 0; }
+.sec-head { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: baseline; justify-content: space-between; }
+.sec-head h2 { font-size: 22px; font-weight: 800; }
+.sec-head p { margin: 0; color: var(--muted); font-size: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-width: 0; }
+
+/* KPIs */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+.kpi .lbl { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.kpi .val { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 600; line-height: 1.2; }
+.kpi .sub { font-size: 13px; color: var(--muted); }
+.kpi.hot { background: var(--red); border-color: var(--red); color: var(--on-red); }
+.kpi.hot .lbl, .kpi.hot .sub { color: var(--on-red); opacity: .9; }
+@media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .kpi .val { font-size: 20px; } }
+
+.delta { font-family: var(--font-data); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.delta.up { color: var(--up); }
+.delta.down { color: var(--down); }
+.kpi.hot .delta { color: var(--on-red); }
+
+/* Captura */
+form.capture { display: grid; grid-template-columns: 1.1fr 1.4fr .9fr 1fr 1.5fr auto; gap: 10px; align-items: end; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.field input, .field select { width: 100%; min-width: 0; padding: 9px 10px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--bg); }
+.field input:focus, .field select:focus { border-color: var(--yellow); outline: none; }
+.btn { border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 600; cursor: pointer; background: var(--red); color: var(--on-red); white-space: nowrap; }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--red); border: 1.5px solid var(--red); padding: 7px 12px; }
+.btn.small { padding: 6px 10px; font-size: 13px; }
+.form-msg { font-size: 13px; color: var(--muted); min-height: 1.2em; margin: 0; }
+@media (max-width: 960px) { form.capture { grid-template-columns: repeat(2, minmax(0, 1fr)); } form.capture .wide { grid-column: span 2; } }
+
+/* Tablas */
+.tscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; background: var(--surface); }
+th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; }
+td:first-child { font-weight: 600; max-width: 220px; white-space: normal; min-width: 150px; }
+td .amt { font-family: var(--font-data); font-variant-numeric: tabular-nums; display: block; }
+td .delta { display: block; }
+tfoot td { font-weight: 700; background: var(--surface-2); border-bottom: 0; }
+tfoot td:first-child { background: var(--surface-2); }
+td.empty { color: var(--muted); }
+.matrix td.cur { background: color-mix(in srgb, var(--yellow) 12%, var(--surface)); }
+.bar { height: 8px; border-radius: 4px; background: var(--surface-2); position: relative; min-width: 90px; margin-top: 6px; }
+.bar i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.bar i.up { background: var(--up); left: 50%; }
+.bar i.down { background: var(--yellow); right: 50%; }
+.bar::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1.5px; background: var(--muted); }
+
+.chart-box { position: relative; height: 300px; }
+@media (max-width: 520px) { .chart-box { height: 240px; } }
+
+.two { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 900px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.inline-ctrls { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.inline-ctrls .field { width: auto; }
+.inline-ctrls .field input, .inline-ctrls .field select { width: auto; min-width: 120px; }
+.vs { font-family: var(--font-display); font-weight: 800; color: var(--red); padding-bottom: 8px; }
+
+.proj-hero { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 700px) { .proj-hero { grid-template-columns: minmax(0, 1fr); } }
+.infl-input { display: flex; align-items: center; gap: 6px; }
+.infl-input input { width: 90px !important; min-width: 0 !important; font-family: var(--font-data); font-weight: 600; font-size: 18px; text-align: right; }
+.method { font-size: 13px; color: var(--muted); margin: 0; max-width: 70ch; }
+
+/* Presupuesto de TI */
+.budget { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px 24px; align-items: center; }
+@media (max-width: 760px) { .budget { grid-template-columns: minmax(0, 1fr); } }
+.budget .restante-lbl { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.budget .restante { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: clamp(28px, 5vw, 40px); font-weight: 600; line-height: 1.1; }
+.budget .restante.over { color: var(--up); }
+.meter { height: 16px; border-radius: 8px; background: var(--surface-2); overflow: hidden; margin-top: 10px; border: 1px solid var(--line); }
+.meter i { display: block; height: 100%; background: var(--yellow); border-radius: 8px 0 0 8px; }
+.meter i.warn { background: var(--p3); }
+.meter i.over { background: var(--red); }
+.budget-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.budget-facts strong { display: block; font-family: var(--font-data); font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+@media (max-width: 420px) { .budget-facts { grid-template-columns: minmax(0, 1fr); } }
+.budget-form { display: grid; gap: 8px; }
+.budget-form .row { display: flex; gap: 8px; }
+.budget-form input { font-family: var(--font-data); font-size: 18px; font-weight: 600; }
+.budget-msg { font-size: 13px; color: var(--muted); margin: 0; min-height: 1.2em; }
+
+/* Acceso */
+.userbox { display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap; }
+.userbox span { opacity: .9; overflow-wrap: anywhere; }
+.auth-wrap { padding-block: 40px 60px; display: grid; justify-items: center; }
+.auth-card { width: min(420px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: grid; gap: 14px; }
+.auth-card h2 { font-size: 24px; font-weight: 800; }
+.auth-card p { margin: 0; color: var(--muted); font-size: 14px; }
+.auth-card form { display: grid; gap: 12px; }
+.auth-links { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; }
+.link { border: 0; background: none; color: var(--red); font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+.auth-msg { font-size: 14px; min-height: 1.3em; color: var(--ink); }
+.auth-msg.err { color: var(--up); }
+
+.mov-del.confirm { background: var(--red); color: var(--on-red); }
+.status { font-size: 13px; color: var(--muted); }
+.empty-state { padding: 26px 16px; text-align: center; color: var(--muted); }
+.plaza-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="band">
+  <div class="wrap">
+    <div class="brand">
+      <small>Control de gastos por plaza</small>
+      <h1>Gastos <span>Plazas</span> Península</h1>
+    </div>
+    <div class="filters" id="filtros" hidden role="group" aria-label="Filtrar por plaza">
+      <span id="plaza-chips" class="filters"></span>
+      <select id="anio" class="yearsel" aria-label="Año"></select>
+    </div>
+    <div class="userbox" id="user-box" hidden><span id="user-email"></span><button type="button" class="chip" id="btn-salir">Cerrar sesión</button></div>
+  </div>
+</header>
+
+<div class="wrap auth-wrap" id="auth-view">
+  <div class="auth-card">
+    <h2 id="auth-title">Entrar</h2>
+    <p id="auth-sub">Entra con tu número de empleado y tu contraseña.</p>
+    <form id="auth-form" autocomplete="on">
+      <div class="field" id="auth-email-f"><label for="auth-email">Número de empleado</label><input id="auth-email" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="20" required></div>
+      <div class="field" id="auth-pass-f"><label for="auth-pass">Contraseña</label><input id="auth-pass" type="password" autocomplete="current-password" minlength="8" required></div>
+      <div class="field" id="auth-pass2-f" hidden><label for="auth-pass2">Repite la contraseña nueva</label><input id="auth-pass2" type="password" autocomplete="new-password" minlength="8"></div>
+      <button class="btn" id="auth-btn" type="submit">Entrar</button>
+    </form>
+    <div class="auth-msg" id="auth-msg" role="status"></div>
+    <div class="auth-links" id="auth-links"></div>
+  </div>
+</div>
+
+<main id="app-main" hidden>
+  <div class="wrap">
+    <div id="notice-ejemplo" class="notice" hidden>
+      <span>Estás viendo <strong>datos de ejemplo</strong> para que veas cómo funciona. Bórralos cuando empieces a capturar tus gastos reales.</span>
+      <button class="btn ghost small" id="borrar-ejemplos" type="button">Borrar datos de ejemplo</button>
+    </div>
+    <div id="notice-modo" class="notice" hidden><span id="modo-txt"></span><button class="btn small" id="modo-btn" type="button" hidden></button></div>
+
+    <section aria-labelledby="h-resumen">
+      <div class="sec-head">
+        <h2 id="h-resumen">Resumen</h2>
+        <div class="inline-ctrls" style="align-items:center">
+          <p id="resumen-ctx" class="status" style="margin:0">Conectando con Supabase…</p>
+          <span id="sync" class="status"></span>
+          <button class="btn ghost small" id="btn-sync" type="button">Actualizar</button>
+        </div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <section aria-labelledby="h-ti">
+      <div class="sec-head">
+        <h2 id="h-ti">Presupuesto de TI <span id="ti-anio"></span></h2>
+        <p>Un monto anual para las 4 plazas. Cada gasto capturado en el año lo va descontando.</p>
+      </div>
+      <div class="panel budget">
+        <div id="ti-estado"></div>
+        <form class="budget-form" id="ti-form" autocomplete="off">
+          <div class="field"><label for="ti-monto" id="ti-monto-lbl">Presupuesto asignado (MXN)</label>
+            <div class="row"><input id="ti-monto" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required><button class="btn" id="ti-guardar" type="submit">Guardar</button></div>
+          </div>
+          <p class="budget-msg" id="ti-msg" role="status"></p>
+        </form>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-captura">
+      <div class="sec-head">
+        <h2 id="h-captura">Registrar gasto</h2>
+        <p>Cada registro suma al proveedor, plaza y mes que elijas.</p>
+      </div>
+      <form class="capture panel" id="form-gasto" autocomplete="off">
+        <div class="field"><label for="f-plaza">Plaza</label><select id="f-plaza" required></select></div>
+        <div class="field"><label for="f-proveedor">Proveedor</label><input id="f-proveedor" list="lista-proveedores" required maxlength="80" placeholder="Ej. CFE"><datalist id="lista-proveedores"></datalist></div>
+        <div class="field"><label for="f-mes">Mes</label><input id="f-mes" type="month" required></div>
+        <div class="field"><label for="f-monto">Monto (MXN)</label><input id="f-monto" type="number" min="0.01" step="0.01" required inputmode="decimal" placeholder="0.00"></div>
+        <div class="field wide"><label for="f-concepto">Concepto</label><input id="f-concepto" maxlength="120" placeholder="Opcional: factura, servicio…"></div>
+        <button class="btn wide" id="f-guardar" type="submit">Agregar gasto</button>
+      </form>
+      <p class="form-msg" id="form-msg" role="status"></p>
+    </section>
+
+    <section aria-labelledby="h-mensual">
+      <div class="sec-head">
+        <h2 id="h-mensual">Mes con mes por proveedor</h2>
+        <p>Debajo de cada monto: cambio contra el mes anterior. ▲ gastaste más, ▼ gastaste menos.</p>
+      </div>
+      <div class="panel"><div class="chart-box"><canvas id="chart-mensual" aria-label="Gasto mensual por plaza"></canvas></div></div>
+      <div class="panel tscroll"><table class="matrix" id="tabla-matriz"></table></div>
+    </section>
+
+    <section aria-labelledby="h-comp">
+      <div class="sec-head">
+        <h2 id="h-comp">Comparativa entre meses</h2>
+        <div class="inline-ctrls">
+          <div class="field"><label for="comp-a">Mes base</label><select id="comp-a"></select></div>
+          <span class="vs">vs</span>
+          <div class="field"><label for="comp-b">Mes a comparar</label><select id="comp-b"></select></div>
+        </div>
+      </div>
+      <div class="two">
+        <div class="panel tscroll"><table id="tabla-comp"></table></div>
+        <div class="panel tscroll"><table id="tabla-comp-plaza"></table></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-proy">
+      <div class="sec-head">
+        <h2 id="h-proy">Proyección con inflación</h2>
+        <div class="inline-ctrls">
+          <div class="field"><label for="infl">Inflación anual</label><span class="infl-input"><input id="infl" type="number" step="0.1" min="-10" max="100"> <strong>%</strong></span></div>
+          <div class="field"><label for="horizonte">Proyectar</label>
+            <select id="horizonte"><option value="6">6 meses</option><option value="12">12 meses</option><option value="18">18 meses</option><option value="24">24 meses</option></select>
+          </div>
+        </div>
+      </div>
+      <p class="method" id="proy-metodo"></p>
+      <div class="proj-hero" id="proy-kpis"></div>
+      <div class="panel"><div class="chart-box"><canvas id="chart-proy" aria-label="Gasto histórico y proyectado"></canvas></div></div>
+      <div class="panel tscroll"><table id="tabla-proy"></table></div>
+    </section>
+
+    <section aria-labelledby="h-mov">
+      <div class="sec-head">
+        <h2 id="h-mov">Movimientos</h2>
+        <div class="inline-ctrls"><div class="field"><label for="mov-mes">Mes</label><select id="mov-mes"></select></div></div>
+      </div>
+      <div class="panel tscroll"><table id="tabla-mov"></table></div>
+    </section>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function () {
+  const PLAZAS = ["Cancún", "Playa del Carmen", "Mérida", "Campeche"];
+  const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  const MESES_L = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  // Proyecto "Gastos-Plazas" en Supabase. La llave publicable es pública por diseño:
+  // los datos los protegen las reglas de acceso (solo correos autorizados y confirmados).
+  const SUPABASE_URL = "https://chcywchistqbtcwtfjdm.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_2tAEe7x2U8hEtaHpsPgOmg_MDFvvtkd";
+  const money = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
+  const money2 = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pct = (v) => (v > 0 ? "+" : "") + v.toFixed(1) + "%";
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  const today = new Date();
+  const mesHoy = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0");
+
+  const state = {
+    mode: "cargando",           // cargando | supabase | error
+    canWrite: true,
+    aviso: null,                // { texto, boton, accion } cuando Supabase falla
+    gastos: [],
+    config: { inflacion: 3.8, horizonte: 12 },
+    presupuestos: {},           // { "2026": 1500000, ... } presupuesto anual de TI
+    ui: { plaza: "Todas", anio: null, compA: "", compB: "", movMes: "" },
+  };
+  const charts = {};
+
+  // ---------- utilidades de meses ----------
+  const mesLabel = (m) => { const [y, mm] = m.split("-"); return MESES[+mm - 1] + " " + y; };
+  const mesLargo = (m) => { const [y, mm] = m.split("-"); return MESES_L[+mm - 1] + " " + y; };
+  const addMes = (m, n) => { const [y, mm] = m.split("-").map(Number); const d = new Date(y, mm - 1 + n, 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
+  const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  function deltaHtml(prev, cur) {
+    if (!prev && !cur) return "";
+    if (!prev) return '<span class="delta up">nuevo</span>';
+    const d = ((cur - prev) / prev) * 100;
+    if (Math.abs(d) < 0.05) return '<span class="delta">= 0.0%</span>';
+    return '<span class="delta ' + (d > 0 ? "up" : "down") + '">' + (d > 0 ? "▲ " : "▼ ") + pct(d) + "</span>";
+  }
+
+  // ---------- datos derivados ----------
+  function filtrados() {
+    return state.ui.plaza === "Todas" ? state.gastos : state.gastos.filter((g) => g.plaza === state.ui.plaza);
+  }
+  function sumBy(list, keyFn) {
+    const m = new Map();
+    for (const g of list) { const k = keyFn(g); m.set(k, (m.get(k) || 0) + (Number(g.monto) || 0)); }
+    return m;
+  }
+  function mesesConDatos(list) { return [...new Set(list.map((g) => g.mes))].sort(); }
+
+  // ---------- render ----------
+  function render() {
+    renderChips();
+    renderYears();
+    renderNotices();
+    renderForm();
+    const list = filtrados();
+    const meses = mesesConDatos(list);
+    ensureDefaults(meses);
+    renderKPIs(list, meses);
+    renderPresupuesto();
+    renderMatriz(list);
+    renderChartMensual(list);
+    renderComparativa(list, meses);
+    renderProyeccion(list, meses);
+    renderMovimientos(list, meses);
+  }
+
+  function renderChips() {
+    const box = $("plaza-chips");
+    const opts = ["Todas", ...PLAZAS];
+    if (box.childElementCount !== opts.length) {
+      box.innerHTML = opts.map((p) => '<button type="button" class="chip" data-plaza="' + esc(p) + '">' + esc(p) + "</button>").join("");
+      box.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { state.ui.plaza = b.dataset.plaza; state.ui.compA = state.ui.compB = state.ui.movMes = ""; render(); }));
+    }
+    box.querySelectorAll(".chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.plaza === state.ui.plaza)));
+  }
+
+  function renderYears() {
+    const years = new Set(state.gastos.map((g) => g.mes.slice(0, 4)));
+    years.add(String(today.getFullYear()));
+    for (let y = 2026; y <= 2030; y++) years.add(String(y));
+    const sorted = [...years].sort();
+    if (!state.ui.anio) {
+      const lastMes = mesesConDatos(state.gastos).pop();
+      state.ui.anio = lastMes ? lastMes.slice(0, 4) : String(today.getFullYear());
+    }
+    const sel = $("anio");
+    const html = sorted.map((y) => '<option value="' + y + '"' + (y === state.ui.anio ? " selected" : "") + ">" + y + "</option>").join("");
+    if (sel.innerHTML !== html) sel.innerHTML = html;
+    sel.value = state.ui.anio;
+  }
+
+  function renderNotices() {
+    $("notice-ejemplo").hidden = !(state.canWrite && state.gastos.some((g) => g.ejemplo));
+    const nm = $("notice-modo"), btn = $("modo-btn");
+    nm.hidden = !state.aviso;
+    if (state.aviso) {
+      $("modo-txt").textContent = state.aviso.texto;
+      btn.hidden = !state.aviso.boton;
+      btn.textContent = state.aviso.boton || "";
+    }
+    $("sync").textContent = lastSync ? "Supabase · actualizado " + lastSync.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) : "";
+    $("btn-sync").disabled = loading || !sesion;
+  }
+
+  function renderForm() {
+    const sel = $("f-plaza");
+    if (!sel.options.length) {
+      sel.innerHTML = PLAZAS.map((p) => "<option>" + esc(p) + "</option>").join("");
+      $("f-mes").value = mesHoy;
+    }
+    if (state.ui.plaza !== "Todas" && document.activeElement !== sel) sel.value = state.ui.plaza;
+    const provs = [...new Set(state.gastos.map((g) => g.proveedor))].sort((a, b) => a.localeCompare(b, "es"));
+    $("lista-proveedores").innerHTML = provs.map((p) => '<option value="' + esc(p) + '"></option>').join("");
+    const disabled = !state.canWrite || state.mode !== "supabase";
+    $("form-gasto").querySelectorAll("input,select,button").forEach((el) => (el.disabled = disabled));
+  }
+
+  function ensureDefaults(meses) {
+    const last = meses[meses.length - 1];
+    if (!state.ui.compB || !meses.includes(state.ui.compB)) state.ui.compB = last || "";
+    if (!state.ui.compA || !meses.includes(state.ui.compA)) state.ui.compA = meses[meses.length - 2] || last || "";
+    if (!state.ui.movMes || !meses.includes(state.ui.movMes)) state.ui.movMes = last || "";
+  }
+
+  function renderKPIs(list, meses) {
+    const box = $("kpis");
+    const ctx = $("resumen-ctx");
+    if (state.mode === "cargando") { box.innerHTML = '<div class="kpi"><span class="lbl">Conectando</span><span class="sub">Cargando los gastos desde Supabase…</span></div>'; return; }
+    if (state.mode === "error") { ctx.textContent = "Sin conexión con Supabase"; box.innerHTML = '<div class="kpi" style="grid-column:1/-1"><span class="lbl">Sin datos</span><span class="sub">Los gastos viven en tu proyecto de Supabase. Sigue el aviso de arriba para conectarte.</span></div>'; return; }
+    if (!list.length) {
+      ctx.textContent = state.ui.plaza === "Todas" ? "Sin gastos registrados todavía" : "Sin gastos en " + state.ui.plaza;
+      box.innerHTML = '<div class="kpi" style="grid-column:1/-1"><span class="lbl">Aún no hay datos</span><span class="sub">Registra tu primer gasto abajo: elige plaza, proveedor, mes y monto. El resumen, la comparativa y la proyección se llenan solos.</span></div>';
+      return;
+    }
+    const porMes = sumBy(list, (g) => g.mes);
+    const last = meses[meses.length - 1];
+    const prev = addMes(last, -1);
+    const vLast = porMes.get(last) || 0, vPrev = porMes.get(prev) || 0;
+    const anio = state.ui.anio;
+    const acumAnio = list.filter((g) => g.mes.startsWith(anio)).reduce((s, g) => s + g.monto, 0);
+    const mesesAnio = meses.filter((m) => m.startsWith(anio)).length || 1;
+    const porProv = sumBy(list.filter((g) => g.mes === last), (g) => g.proveedor);
+    const top = [...porProv.entries()].sort((a, b) => b[1] - a[1])[0];
+    ctx.textContent = (state.ui.plaza === "Todas" ? "Las 4 plazas" : state.ui.plaza) + " · último mes con datos: " + mesLargo(last);
+    box.innerHTML =
+      '<div class="kpi hot"><span class="lbl">Gasto ' + mesLabel(last) + '</span><span class="val">' + money.format(vLast) + '</span><span class="sub">' + deltaHtml(vPrev, vLast) + " vs " + mesLabel(prev) + "</span></div>" +
+      '<div class="kpi"><span class="lbl">Mes anterior</span><span class="val">' + money.format(vPrev) + '</span><span class="sub">' + mesLabel(prev) + "</span></div>" +
+      '<div class="kpi"><span class="lbl">Acumulado ' + anio + '</span><span class="val">' + money.format(acumAnio) + '</span><span class="sub">Promedio ' + money.format(acumAnio / mesesAnio) + " al mes</span></div>" +
+      '<div class="kpi"><span class="lbl">Proveedor principal</span><span class="val" style="font-size:18px;font-family:var(--font-body);font-weight:600">' + esc(top ? top[0] : "—") + '</span><span class="sub num">' + (top ? money.format(top[1]) + " en " + mesLabel(last) : "") + "</span></div>";
+  }
+
+  // El presupuesto es de las 4 plazas: se calcula con todos los gastos del año, sin importar el filtro de plaza.
+  function renderPresupuesto() {
+    const anio = state.ui.anio;
+    $("ti-anio").textContent = anio || "";
+    $("ti-monto-lbl").textContent = "Presupuesto asignado " + (anio || "") + " (MXN)";
+    const box = $("ti-estado");
+    const listo = state.mode === "supabase";
+    $("ti-form").querySelectorAll("input,button").forEach((el) => (el.disabled = !listo));
+    const input = $("ti-monto");
+    const asignado = state.presupuestos[anio];
+    const guardado = asignado != null ? String(asignado) : "";
+    if (document.activeElement !== input && (input.dataset.anio !== anio || input.dataset.guardado !== guardado)) { input.value = guardado; input.dataset.anio = anio; input.dataset.guardado = guardado; }
+    if (!listo) { box.innerHTML = '<div class="empty-state">' + (state.mode === "cargando" ? "Cargando presupuesto…" : "Conéctate a Supabase para ver el presupuesto.") + "</div>"; return; }
+    const delAnio = state.gastos.filter((g) => g.mes.startsWith(anio));
+    const gastado = delAnio.reduce((s, g) => s + g.monto, 0);
+    if (asignado == null) {
+      box.innerHTML = '<span class="restante-lbl">Sin presupuesto asignado</span><div class="restante">—</div><p class="method" style="margin-top:6px">Escribe el presupuesto de TI de ' + anio + " y presiona Guardar. Ya van " + money.format(gastado) + " gastados este año.</p>";
+      return;
+    }
+    const restante = asignado - gastado;
+    const usado = asignado > 0 ? (gastado / asignado) * 100 : (gastado > 0 ? 100 : 0);
+    const cls = usado >= 100 ? "over" : usado >= 80 ? "warn" : "";
+    const meses = new Set(delAnio.map((g) => g.mes)).size || 1;
+    const prom = gastado / meses;
+    let ritmo;
+    if (restante <= 0) ritmo = "Presupuesto agotado";
+    else if (prom <= 0) ritmo = "Sin gastos aún";
+    else { const mesesQueAlcanza = restante / prom; ritmo = mesesQueAlcanza >= 1 ? "Alcanza para ~" + mesesQueAlcanza.toFixed(1) + " meses" : "Alcanza para menos de 1 mes"; }
+    box.innerHTML =
+      '<span class="restante-lbl">' + (restante >= 0 ? "Disponible" : "Excedido por") + '</span><div class="restante' + (restante < 0 ? " over" : "") + '">' + money.format(Math.abs(restante)) + "</div>" +
+      '<div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.min(100, usado).toFixed(0) + '" aria-label="Presupuesto usado"><i class="' + cls + '" style="width:' + Math.min(100, usado).toFixed(1) + '%"></i></div>' +
+      '<div class="budget-facts"><div>Asignado<strong>' + money.format(asignado) + '</strong></div><div>Gastado (' + usado.toFixed(1) + '%)<strong>' + money.format(gastado) + "</strong></div><div>Al ritmo actual<strong>" + ritmo + "</strong></div></div>";
+  }
+
+  function renderMatriz(list) {
+    const anio = state.ui.anio;
+    const tabla = $("tabla-matriz");
+    const delAnio = list.filter((g) => g.mes.startsWith(anio));
+    if (!delAnio.length) { tabla.innerHTML = '<tbody><tr><td class="empty-state" style="position:static">Sin gastos en ' + anio + ".</td></tr></tbody>"; return; }
+    const meses = MESES.map((_, i) => anio + "-" + String(i + 1).padStart(2, "0"));
+    const prevDic = addMes(meses[0], -1);
+    const cell = sumBy(list, (g) => g.proveedor + "|" + g.mes);
+    const provs = [...sumBy(delAnio, (g) => g.proveedor).entries()].sort((a, b) => b[1] - a[1]).map((e) => e[0]);
+    const lastIdx = Math.max(...delAnio.map((g) => +g.mes.slice(5, 7) - 1));
+    const cols = meses.slice(0, lastIdx + 1);
+    let h = "<thead><tr><th>Proveedor</th>" + cols.map((m, i) => "<th>" + MESES[i] + "</th>").join("") + "<th>Total " + anio + "</th></tr></thead><tbody>";
+    const tot = new Array(cols.length).fill(0);
+    for (const p of provs) {
+      let rowTot = 0;
+      h += "<tr><td>" + esc(p) + "</td>";
+      cols.forEach((m, i) => {
+        const v = cell.get(p + "|" + m) || 0;
+        const pv = cell.get(p + "|" + (i ? cols[i - 1] : prevDic)) || 0;
+        rowTot += v; tot[i] += v;
+        h += '<td class="' + (m === mesHoy ? "cur" : "") + (v ? "" : " empty") + '"><span class="amt">' + (v ? money.format(v) : "—") + "</span>" + (v || pv ? deltaHtml(pv, v) : "") + "</td>";
+      });
+      h += '<td><span class="amt"><strong>' + money.format(rowTot) + "</strong></span></td></tr>";
+    }
+    const totPrevDic = list.filter((g) => g.mes === prevDic).reduce((s, g) => s + g.monto, 0);
+    h += "</tbody><tfoot><tr><td>Total</td>" + tot.map((v, i) => '<td><span class="amt">' + money.format(v) + "</span>" + deltaHtml(i ? tot[i - 1] : totPrevDic, v) + "</td>").join("") +
+      '<td><span class="amt">' + money.format(tot.reduce((a, b) => a + b, 0)) + "</span></td></tr></tfoot>";
+    tabla.innerHTML = h;
+  }
+
+  function chartTheme() {
+    return { ink: cssVar("--ink"), muted: cssVar("--muted"), line: cssVar("--line"), red: cssVar("--red"), yellow: cssVar("--yellow"), surface: cssVar("--surface"),
+      plazas: [cssVar("--p1"), cssVar("--p2"), cssVar("--p3"), cssVar("--p4")] };
+  }
+  function baseOptions(t, stacked) {
+    return {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { labels: { color: t.ink, boxWidth: 12, font: { family: "Instrument Sans" } } },
+        tooltip: { callbacks: { label: (c) => c.dataset.label + ": " + money.format(c.parsed.y) } },
+      },
+      scales: {
+        x: { stacked, ticks: { color: t.muted }, grid: { display: false }, border: { color: t.line } },
+        y: { stacked, beginAtZero: true, ticks: { color: t.muted, callback: (v) => "$" + (v >= 1000 ? Math.round(v / 1000) + "k" : v) }, grid: { color: t.line }, border: { display: false } },
+      },
+    };
+  }
+
+  function renderChartMensual(list) {
+    if (!window.Chart) return;
+    const t = chartTheme();
+    const anio = state.ui.anio;
+    const meses = MESES.map((_, i) => anio + "-" + String(i + 1).padStart(2, "0"));
+    const cell = sumBy(list, (g) => g.plaza + "|" + g.mes);
+    const plazas = state.ui.plaza === "Todas" ? PLAZAS : [state.ui.plaza];
+    const datasets = plazas.map((p) => ({
+      label: p, data: meses.map((m) => cell.get(p + "|" + m) || 0),
+      backgroundColor: t.plazas[PLAZAS.indexOf(p)], borderRadius: 3, maxBarThickness: 46,
+    }));
+    if (charts.mensual) charts.mensual.destroy();
+    charts.mensual = new Chart($("chart-mensual"), { type: "bar", data: { labels: MESES, datasets }, options: baseOptions(t, true) });
+  }
+
+  function fillMonthSelect(sel, meses, val) {
+    const html = meses.slice().reverse().map((m) => '<option value="' + m + '">' + mesLargo(m) + "</option>").join("");
+    if (sel.dataset.html !== html) { sel.innerHTML = html || "<option value=''>Sin datos</option>"; sel.dataset.html = html; }
+    sel.value = val;
+  }
+
+  function compRows(mapA, mapB, keys) {
+    return keys.map((k) => ({ k, a: mapA.get(k) || 0, b: mapB.get(k) || 0 })).map((r) => ({ ...r, d: r.b - r.a, p: r.a ? ((r.b - r.a) / r.a) * 100 : null }));
+  }
+  function compTable(title, rows, maxAbsPct, dot) {
+    let h = "<thead><tr><th>" + title + "</th><th>" + mesLabel(state.ui.compA) + "</th><th>" + mesLabel(state.ui.compB) + "</th><th>Diferencia</th><th>Cambio</th></tr></thead><tbody>";
+    let ta = 0, tb = 0;
+    for (const r of rows) {
+      ta += r.a; tb += r.b;
+      const w = r.p === null ? 50 : Math.min(50, (Math.abs(r.p) / maxAbsPct) * 50);
+      const cls = r.d > 0 ? "up" : "down";
+      h += "<tr><td>" + (dot ? dot(r.k) : "") + esc(r.k) + '</td><td><span class="amt">' + money.format(r.a) + '</span></td><td><span class="amt">' + money.format(r.b) +
+        '</span></td><td><span class="amt delta ' + (r.d ? cls : "") + '">' + (r.d > 0 ? "+" : "") + money.format(r.d) + "</span></td><td>" +
+        (r.p === null ? (r.b ? '<span class="delta up">nuevo</span>' : "—") : '<span class="delta ' + (r.d ? cls : "") + '">' + pct(r.p) + "</span>") +
+        (r.d ? '<div class="bar"><i class="' + cls + '" style="width:' + w + '%"></i></div>' : "") + "</td></tr>";
+    }
+    const tp = ta ? ((tb - ta) / ta) * 100 : null;
+    h += '</tbody><tfoot><tr><td>Total</td><td><span class="amt">' + money.format(ta) + '</span></td><td><span class="amt">' + money.format(tb) + '</span></td><td><span class="amt">' + (tb - ta > 0 ? "+" : "") + money.format(tb - ta) +
+      "</span></td><td>" + (tp === null ? "—" : '<span class="delta ' + (tb > ta ? "up" : "down") + '">' + pct(tp) + "</span>") + "</td></tr></tfoot>";
+    return h;
+  }
+
+  function renderComparativa(list, meses) {
+    fillMonthSelect($("comp-a"), meses, state.ui.compA);
+    fillMonthSelect($("comp-b"), meses, state.ui.compB);
+    if (!meses.length) { $("tabla-comp").innerHTML = '<tbody><tr><td class="empty-state" style="position:static">Registra gastos de al menos un mes para comparar.</td></tr></tbody>'; $("tabla-comp-plaza").innerHTML = ""; return; }
+    const A = list.filter((g) => g.mes === state.ui.compA), B = list.filter((g) => g.mes === state.ui.compB);
+    const pa = sumBy(A, (g) => g.proveedor), pb = sumBy(B, (g) => g.proveedor);
+    const provs = [...new Set([...pa.keys(), ...pb.keys()])];
+    const rows = compRows(pa, pb, provs).sort((x, y) => Math.abs(y.d) - Math.abs(x.d));
+    const maxP = Math.max(5, ...rows.filter((r) => r.p !== null).map((r) => Math.abs(r.p)));
+    $("tabla-comp").innerHTML = compTable("Proveedor", rows, maxP);
+    const la = sumBy(A, (g) => g.plaza), lb = sumBy(B, (g) => g.plaza);
+    const plazas = state.ui.plaza === "Todas" ? PLAZAS : [state.ui.plaza];
+    const prows = compRows(la, lb, plazas);
+    const maxPP = Math.max(5, ...prows.filter((r) => r.p !== null).map((r) => Math.abs(r.p)));
+    const t = chartTheme();
+    $("tabla-comp-plaza").innerHTML = compTable("Plaza", prows, maxPP, (p) => '<span class="plaza-dot" style="background:' + t.plazas[PLAZAS.indexOf(p)] + '"></span>');
+  }
+
+  function renderProyeccion(list, meses) {
+    const infl = Number(state.config.inflacion) || 0;
+    const H = Number(state.config.horizonte) || 12;
+    const inflInput = $("infl");
+    if (document.activeElement !== inflInput) inflInput.value = infl;
+    $("horizonte").value = String(H);
+    $("infl").disabled = $("horizonte").disabled = state.mode !== "supabase";
+    const tabla = $("tabla-proy");
+    if (!meses.length) {
+      $("proy-metodo").textContent = "La proyección aparece cuando hay al menos un mes con gastos.";
+      $("proy-kpis").innerHTML = ""; tabla.innerHTML = "";
+      if (charts.proy) { charts.proy.destroy(); charts.proy = null; }
+      return;
+    }
+    const last = meses[meses.length - 1];
+    const base3 = [addMes(last, -2), addMes(last, -1), last];
+    const n = Math.min(3, meses.filter((m) => m <= last && m >= base3[0]).length) || 1;
+    const baseList = list.filter((g) => base3.includes(g.mes));
+    const baseProv = sumBy(baseList, (g) => g.proveedor);
+    const mensual = Math.pow(1 + infl / 100, 1 / 12) - 1;
+    const factor = (k) => Math.pow(1 + mensual, k);
+    const futMeses = Array.from({ length: H }, (_, i) => addMes(last, i + 1));
+    $("proy-metodo").textContent = "Base: promedio mensual de " + (n === 3 ? "los últimos 3 meses" : n === 1 ? "el último mes" : "los últimos " + n + " meses") + " con datos (" + mesLabel(base3[3 - n]) + " – " + mesLabel(last) +
+      "). A ese promedio se le aplica la inflación anual de " + infl.toFixed(1) + "% de forma compuesta mes a mes (" + (mensual * 100).toFixed(3) + "% mensual).";
+
+    const rows = [...baseProv.entries()].map(([p, s]) => {
+      const b = s / n;
+      const fut = futMeses.map((_, i) => b * factor(i + 1));
+      return { p, b, primero: fut[0], ultimo: fut[H - 1], total: fut.reduce((a, c) => a + c, 0) };
+    }).sort((x, y) => y.total - x.total);
+    const baseTot = rows.reduce((s, r) => s + r.b, 0);
+    const totProy = rows.reduce((s, r) => s + r.total, 0);
+    const sinInfl = baseTot * H;
+    $("proy-kpis").innerHTML =
+      '<div class="kpi hot"><span class="lbl">Gasto proyectado · ' + H + ' meses</span><span class="val">' + money.format(totProy) + '</span><span class="sub">' + mesLabel(futMeses[0]) + " – " + mesLabel(futMeses[H - 1]) + "</span></div>" +
+      '<div class="kpi"><span class="lbl">Costo de la inflación</span><span class="val">' + (totProy - sinInfl >= 0 ? "+" : "") + money.format(totProy - sinInfl) + '</span><span class="sub">Contra mantener el gasto actual sin aumentos (' + money.format(sinInfl) + ")</span></div>" +
+      '<div class="kpi"><span class="lbl">Gasto mensual en ' + mesLabel(futMeses[H - 1]) + '</span><span class="val">' + money.format(baseTot * factor(H)) + '</span><span class="sub">Hoy: ' + money.format(baseTot) + " al mes en promedio</span></div>";
+
+    let h = "<thead><tr><th>Proveedor</th><th>Promedio actual</th><th>" + mesLabel(futMeses[0]) + "</th><th>" + mesLabel(futMeses[H - 1]) + "</th><th>Total " + H + " meses</th><th>Participación</th></tr></thead><tbody>";
+    for (const r of rows) {
+      h += "<tr><td>" + esc(r.p) + '</td><td><span class="amt">' + money.format(r.b) + '</span></td><td><span class="amt">' + money.format(r.primero) + '</span></td><td><span class="amt">' + money.format(r.ultimo) +
+        '</span></td><td><span class="amt"><strong>' + money.format(r.total) + '</strong></span></td><td><span class="amt">' + (totProy ? ((r.total / totProy) * 100).toFixed(1) : "0.0") + "%</span></td></tr>";
+    }
+    h += '</tbody><tfoot><tr><td>Total</td><td><span class="amt">' + money.format(baseTot) + '</span></td><td><span class="amt">' + money.format(baseTot * factor(1)) + '</span></td><td><span class="amt">' + money.format(baseTot * factor(H)) +
+      '</span></td><td><span class="amt">' + money.format(totProy) + '</span></td><td><span class="amt">100%</span></td></tr></tfoot>';
+    tabla.innerHTML = h;
+
+    if (!window.Chart) return;
+    const t = chartTheme();
+    const hist = Array.from({ length: 12 }, (_, i) => addMes(last, i - 11));
+    const porMes = sumBy(list, (g) => g.mes);
+    const labels = [...hist, ...futMeses].map(mesLabel);
+    const histData = [...hist.map((m) => porMes.get(m) || 0), ...futMeses.map(() => null)];
+    const projData = [...hist.map((m, i) => (i === 11 ? porMes.get(m) || 0 : null)), ...futMeses.map((_, i) => baseTot * factor(i + 1))];
+    const flatData = [...hist.map((m, i) => (i === 11 ? porMes.get(m) || 0 : null)), ...futMeses.map(() => baseTot)];
+    if (charts.proy) charts.proy.destroy();
+    const opts = baseOptions(t, false);
+    opts.scales.y.beginAtZero = false;
+    opts.plugins.tooltip.callbacks.label = (c) => (c.parsed.y == null ? null : c.dataset.label + ": " + money.format(c.parsed.y));
+    charts.proy = new Chart($("chart-proy"), {
+      type: "line",
+      data: { labels, datasets: [
+        { label: "Real", data: histData, borderColor: t.red, backgroundColor: t.red, pointRadius: 3, borderWidth: 2.5, tension: 0.25, spanGaps: false },
+        { label: "Proyectado con " + infl.toFixed(1) + "% inflación", data: projData, borderColor: t.yellow, backgroundColor: t.yellow, borderDash: [6, 4], pointRadius: 2, borderWidth: 2.5, tension: 0.2 },
+        { label: "Sin aumento", data: flatData, borderColor: t.muted, borderDash: [2, 4], pointRadius: 0, borderWidth: 1.5 },
+      ] },
+      options: opts,
+    });
+  }
+
+  function renderMovimientos(list, meses) {
+    fillMonthSelect($("mov-mes"), meses, state.ui.movMes);
+    const tabla = $("tabla-mov");
+    const rows = list.filter((g) => g.mes === state.ui.movMes).sort((a, b) => a.plaza.localeCompare(b.plaza) || b.monto - a.monto);
+    if (!rows.length) { tabla.innerHTML = '<tbody><tr><td class="empty-state" style="position:static">No hay movimientos para mostrar.</td></tr></tbody>'; return; }
+    const t = chartTheme();
+    let h = "<thead><tr><th>Proveedor</th><th style='text-align:left'>Plaza</th><th style='text-align:left'>Concepto</th><th>Monto</th>" + (state.canWrite ? "<th></th>" : "") + "</tr></thead><tbody>";
+    for (const g of rows) {
+      h += "<tr><td>" + esc(g.proveedor) + '</td><td style="text-align:left"><span class="plaza-dot" style="background:' + t.plazas[PLAZAS.indexOf(g.plaza)] + '"></span>' + esc(g.plaza) +
+        '</td><td style="text-align:left;white-space:normal;color:var(--muted)">' + esc(g.concepto || "") + (g.ejemplo ? " <em>(ejemplo)</em>" : "") + '</td><td><span class="amt">' + money2.format(g.monto) + "</span></td>" +
+        (state.canWrite ? '<td><button type="button" class="btn ghost small mov-del" data-id="' + esc(g.id) + '">Eliminar</button></td>' : "") + "</tr>";
+    }
+    h += '</tbody><tfoot><tr><td>Total ' + mesLabel(state.ui.movMes) + "</td><td></td><td></td><td><span class=\"amt\">" + money2.format(rows.reduce((s, g) => s + g.monto, 0)) + "</span></td>" + (state.canWrite ? "<td></td>" : "") + "</tr></tfoot>";
+    tabla.innerHTML = h;
+  }
+
+  // ---------- Supabase (cliente web con inicio de sesión) ----------
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  let sesion = null, lastSync = null, loading = false, timer = null;
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const esRed = (e) => /fetch|network|load failed/i.test(String((e && e.message) || e || ""));
+
+  function avisoDe(e) {
+    const msg = String((e && (e.message || e.error_description)) || "");
+    if (esRed(e)) return { texto: "No hay conexión con Supabase. Revisa tu internet; si el proyecto gratuito estuvo varios días sin uso, puede estar pausado y se reactiva en supabase.com.", boton: "Reintentar" };
+    if ((e && e.code === "42501") || /row-level security|permission denied/i.test(msg)) return { texto: "Tu cuenta no tiene permiso para esta acción. Pide al administrador que autorice tu correo." };
+    if (/jwt|session|expired/i.test(msg)) return { texto: "Tu sesión expiró. Vuelve a entrar.", boton: "Reintentar" };
+    return { texto: "Supabase respondió con un error: " + msg.slice(0, 160), boton: "Reintentar" };
+  }
+
+  async function cargar(reintento) {
+    if (!sesion || loading) return;
+    loading = true; renderNotices();
+    try {
+      const [g, a, p] = await Promise.all([
+        sb.from("gastos").select("id, plaza, proveedor, mes, monto, concepto, ejemplo, creado").order("mes").order("creado"),
+        sb.from("ajustes").select("inflacion, horizonte").eq("id", 1).maybeSingle(),
+        sb.from("presupuestos").select("anio, monto"),
+      ]);
+      for (const r of [g, a, p]) if (r.error) throw r.error;
+      state.gastos = (g.data || []).map((x) => ({ id: String(x.id), plaza: x.plaza, proveedor: String(x.proveedor || ""), mes: String(x.mes || ""), monto: Number(x.monto) || 0, concepto: x.concepto || "", ejemplo: !!x.ejemplo }))
+        .filter((x) => PLAZAS.includes(x.plaza) && /^\d{4}-\d{2}$/.test(x.mes));
+      state.presupuestos = {};
+      for (const r of p.data || []) state.presupuestos[String(r.anio)] = Number(r.monto);
+      if (a.data && !cfgTimer) state.config = { inflacion: Number(a.data.inflacion ?? 3.8), horizonte: Number(a.data.horizonte ?? 12) };
+      state.mode = "supabase"; state.aviso = null; lastSync = new Date();
+    } catch (e) {
+      if (esRed(e) && !reintento) {
+        loading = false;
+        await new Promise((r) => setTimeout(r, 1200 + Math.random() * 800));
+        return cargar(true);
+      }
+      if (state.mode !== "supabase") state.mode = "error";
+      state.aviso = avisoDe(e);
+    } finally { loading = false; render(); }
+  }
+
+  // Escrituras: si falla la red, se recarga en vez de repetir, para no duplicar.
+  async function escribir(peticion) {
+    try { const r = await peticion; if (r && r.error) throw r.error; }
+    finally { await cargar(); }
+  }
+  async function addGasto(g) {
+    await escribir(sb.from("gastos").insert({ plaza: g.plaza, proveedor: g.proveedor, mes: g.mes, monto: Number(g.monto.toFixed(2)), concepto: g.concepto }));
+  }
+  async function delGasto(id) {
+    if (!UUID.test(id)) throw { message: "id inválido" };
+    await escribir(sb.from("gastos").delete().eq("id", id));
+  }
+  let cfgTimer = null;
+  function saveConfig() {
+    clearTimeout(cfgTimer);
+    cfgTimer = setTimeout(async () => {
+      const inf = Number(state.config.inflacion), H = [6, 12, 18, 24].includes(Number(state.config.horizonte)) ? Number(state.config.horizonte) : 12;
+      try { const r = await sb.from("ajustes").update({ inflacion: Number(inf.toFixed(2)), horizonte: H, actualizado: new Date().toISOString() }).eq("id", 1); if (r.error) throw r.error; }
+      catch (e) { $("form-msg").textContent = "No se pudo guardar la inflación. " + avisoDe(e).texto; }
+      finally { cfgTimer = null; }
+    }, 700);
+  }
+
+  // ---------- eventos ----------
+  $("anio").addEventListener("change", (e) => { state.ui.anio = e.target.value; render(); });
+  $("comp-a").addEventListener("change", (e) => { state.ui.compA = e.target.value; render(); });
+  $("comp-b").addEventListener("change", (e) => { state.ui.compB = e.target.value; render(); });
+  $("mov-mes").addEventListener("change", (e) => { state.ui.movMes = e.target.value; render(); });
+  $("infl").addEventListener("input", (e) => {
+    const v = parseFloat(e.target.value);
+    if (!isFinite(v) || v < -10 || v > 100) return;
+    state.config.inflacion = v; render(); saveConfig();
+  });
+  $("horizonte").addEventListener("change", (e) => { state.config.horizonte = Number(e.target.value); render(); saveConfig(); });
+
+  $("form-gasto").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = $("form-msg");
+    const proveedor = $("f-proveedor").value.trim().replace(/\s+/g, " ");
+    const monto = Math.round(parseFloat($("f-monto").value) * 100) / 100;
+    const mes = $("f-mes").value;
+    if (!proveedor || !(monto > 0) || !/^\d{4}-\d{2}$/.test(mes)) { msg.textContent = "Revisa proveedor, mes y un monto mayor a cero."; return; }
+    // Reutiliza el nombre existente si solo cambian mayúsculas, para no duplicar proveedores.
+    const existente = state.gastos.find((g) => g.proveedor.toLowerCase() === proveedor.toLowerCase());
+    const g = { plaza: $("f-plaza").value, proveedor: existente ? existente.proveedor : proveedor, mes, monto, concepto: $("f-concepto").value.trim(), creado: new Date().toISOString() };
+    $("f-guardar").disabled = true;
+    try {
+      await addGasto(g);
+      msg.textContent = "Agregado: " + money2.format(monto) + " de " + g.proveedor + " en " + g.plaza + ", " + mesLargo(mes) + ".";
+      $("f-monto").value = ""; $("f-concepto").value = ""; $("f-monto").focus();
+      if (!state.ui.anio || !mes.startsWith(state.ui.anio)) state.ui.anio = mes.slice(0, 4);
+    } catch (err) {
+      msg.textContent = esRed(err)
+        ? "No hubo respuesta clara de Supabase. Revisa en Movimientos si el gasto quedó guardado antes de capturarlo otra vez."
+        : "No se guardó el gasto. " + avisoDe(err).texto;
+    } finally { $("f-guardar").disabled = state.mode !== "supabase"; }
+  });
+
+  $("tabla-mov").addEventListener("click", async (e) => {
+    const b = e.target.closest(".mov-del");
+    if (!b) return;
+    if (!b.classList.contains("confirm")) {
+      document.querySelectorAll(".mov-del.confirm").forEach((x) => { x.classList.remove("confirm"); x.textContent = "Eliminar"; });
+      b.classList.add("confirm"); b.textContent = "¿Confirmar?"; return;
+    }
+    b.disabled = true; b.textContent = "Eliminando…";
+    try { await delGasto(b.dataset.id); } catch (err) { b.disabled = false; b.textContent = "Reintentar"; }
+  });
+
+  $("borrar-ejemplos").addEventListener("click", async (e) => {
+    const b = e.currentTarget;
+    if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Confirmar: borrar todos los ejemplos"; return; }
+    b.disabled = true; b.textContent = "Borrando…";
+    try { await escribir(sb.from("gastos").delete().eq("ejemplo", true)); } catch (err) { $("form-msg").textContent = "No se borraron los ejemplos. " + avisoDe(err).texto; }
+    b.disabled = false; delete b.dataset.armed; b.textContent = "Borrar datos de ejemplo";
+  });
+
+  $("ti-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const anio = state.ui.anio, msg = $("ti-msg");
+    const monto = Math.round(parseFloat($("ti-monto").value) * 100) / 100;
+    if (!/^\d{4}$/.test(anio) || !(monto >= 0) || monto > 1e12) { msg.textContent = "Escribe un monto válido, de cero en adelante."; return; }
+    $("ti-guardar").disabled = true; msg.textContent = "Guardando…";
+    try {
+      await escribir(sb.from("presupuestos").upsert({ anio: Number(anio), monto, actualizado: new Date().toISOString() }, { onConflict: "anio" }));
+      msg.textContent = "Presupuesto de TI " + anio + " guardado: " + money2.format(monto) + ".";
+      $("ti-monto").dataset.guardado = "";
+    } catch (err) { msg.textContent = "No se guardó el presupuesto. " + avisoDe(err).texto; }
+    finally { renderPresupuesto(); }
+  });
+
+  $("btn-sync").addEventListener("click", () => cargar());
+  $("modo-btn").addEventListener("click", () => { state.aviso = null; renderNotices(); cargar(); });
+
+  // Repinta las gráficas cuando cambia el tema.
+  const rerenderCharts = () => { const list = filtrados(); renderChartMensual(list); renderProyeccion(list, mesesConDatos(list)); };
+  try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", rerenderCharts); } catch (e) {}
+  new MutationObserver(rerenderCharts).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  // ---------- arranque ----------
+  // ---------- acceso ----------
+  // Cada número de empleado es un usuario de Supabase con un correo interno que nunca recibe mensajes.
+  const correoDe = (num) => num.trim().toLowerCase() + "@empleados.gastos-plazas.local";
+  let modoAuth = "entrar";
+  function modoAcceso(m) {
+    modoAuth = m;
+    const t = { entrar: ["Entrar", "Entra con tu número de empleado y tu contraseña.", "Entrar"],
+      nueva: ["Crea tu contraseña", "Es tu primer ingreso o te restablecieron la contraseña. Elige una propia de al menos 8 caracteres; la temporal deja de servir.", "Guardar y entrar"] }[m];
+    $("auth-title").textContent = t[0]; $("auth-sub").textContent = t[1]; $("auth-btn").textContent = t[2];
+    $("auth-email-f").hidden = m === "nueva"; $("auth-email").required = m !== "nueva";
+    $("auth-pass2-f").hidden = m !== "nueva"; $("auth-pass2").required = m === "nueva";
+    $("auth-pass").autocomplete = m === "entrar" ? "current-password" : "new-password";
+    $("auth-pass").value = ""; $("auth-pass2").value = "";
+    $("auth-links").innerHTML = m === "entrar"
+      ? '<span class="status">¿Olvidaste tu contraseña? Pide al administrador que la restablezca.</span>'
+      : '<button type="button" class="link" id="auth-cancelar">Cancelar y salir</button>';
+    authMsg("");
+  }
+  function authMsg(t, err) { const el = $("auth-msg"); el.textContent = t; el.classList.toggle("err", !!err); }
+  function traducir(e) {
+    const m = String((e && e.message) || "");
+    if (/invalid login/i.test(m)) return "Número de empleado o contraseña incorrectos.";
+    if (/same.*password|different from the old/i.test(m)) return "La contraseña nueva debe ser distinta de la temporal.";
+    if (/password/i.test(m) && /least|short|weak/i.test(m)) return "La contraseña es muy corta o débil. Usa al menos 8 caracteres.";
+    if (/rate limit/i.test(m)) return "Demasiados intentos. Espera unos minutos y vuelve a intentar.";
+    if (esRed(e)) return "No hay conexión. Revisa tu internet.";
+    return "No se pudo completar: " + m.slice(0, 140);
+  }
+  document.addEventListener("click", (e) => { if (e.target.closest("#auth-cancelar")) sb.auth.signOut(); });
+  $("auth-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const num = $("auth-email").value.trim().toLowerCase(), pass = $("auth-pass").value;
+    if (modoAuth === "entrar" && !/^[a-z0-9-]{1,20}$/.test(num)) { authMsg("Escribe tu número de empleado (solo letras, números o guion).", true); return; }
+    if (modoAuth === "nueva" && pass !== $("auth-pass2").value) { authMsg("Las dos contraseñas no coinciden.", true); return; }
+    $("auth-btn").disabled = true; authMsg("Un momento…");
+    try {
+      if (modoAuth === "entrar") { const r = await sb.auth.signInWithPassword({ email: correoDe(num), password: pass }); if (r.error) throw r.error; authMsg(""); }
+      else {
+        const r = await sb.auth.updateUser({ password: pass, data: { debe_cambiar: false } }); if (r.error) throw r.error;
+        if (r.data && r.data.user) sesion = { ...sesion, user: r.data.user };
+        modoAcceso("entrar"); entrarAlTablero();
+      }
+    } catch (err) { authMsg(traducir(err), true); }
+    finally { $("auth-btn").disabled = false; }
+  });
+  $("btn-salir").addEventListener("click", async () => { await sb.auth.signOut(); });
+
+  function mostrarAcceso() {
+    clearInterval(timer); timer = null; sesion = null;
+    state.mode = "cargando"; state.gastos = []; state.presupuestos = {}; lastSync = null;
+    $("app-main").hidden = true; $("auth-view").hidden = false; $("user-box").hidden = true; $("filtros").hidden = true;
+  }
+  async function entrarAlTablero() {
+    const meta = sesion.user.user_metadata || {};
+    $("user-email").textContent = "Empleado " + (meta.empleado || sesion.user.email.split("@")[0]) + (meta.nombre ? " · " + meta.nombre : "");
+    $("user-box").hidden = false;
+    if (meta.debe_cambiar) { $("app-main").hidden = true; $("auth-view").hidden = false; $("filtros").hidden = true; modoAcceso("nueva"); return; }
+    const r = await sb.rpc("es_autorizado");
+    if (r.error || r.data !== true) {
+      $("app-main").hidden = true; $("auth-view").hidden = false;
+      modoAcceso("entrar");
+      authMsg(r.error ? traducir(r.error) : "Tu número de empleado no tiene acceso a este sistema. Pide al administrador que te dé de alta.", true);
+      await sb.auth.signOut();
+      return;
+    }
+    $("auth-view").hidden = true; $("app-main").hidden = false; $("filtros").hidden = false;
+    render();
+    await cargar();
+    clearInterval(timer);
+    // Trae lo que capturen otras personas; se salta mientras se edita la inflación.
+    timer = setInterval(() => { if (!document.hidden && state.mode === "supabase" && !cfgTimer && document.activeElement !== $("infl")) cargar(); }, 60000);
+  }
+  async function start() {
+    modoAcceso("entrar");
+    if (!window.supabase) { authMsg("No se pudo cargar la conexión con Supabase. Revisa tu internet y recarga la página.", true); return; }
+    sb.auth.onAuthStateChange((evento, s) => {
+      if (evento === "SIGNED_OUT" || !s) { const m = $("auth-msg").textContent, err = $("auth-msg").classList.contains("err"); mostrarAcceso(); modoAcceso("entrar"); if (err) authMsg(m, true); return; }
+      const nuevo = !sesion || sesion.user.id !== s.user.id;
+      sesion = s;
+      if (nuevo && modoAuth !== "nueva") setTimeout(entrarAlTablero, 0);
+    });
+  }
+  start();
+})();
+</script>
+</body>
+</html>
