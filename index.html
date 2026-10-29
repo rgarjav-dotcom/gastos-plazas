@@ -162,6 +162,35 @@ td.empty { color: var(--muted); }
 .budget-form input { font-family: var(--font-data); font-size: 18px; font-weight: 600; }
 .budget-msg { font-size: 13px; color: var(--muted); margin: 0; min-height: 1.2em; }
 
+/* Módulo Admin */
+#admin-main .wrap { padding-block: 24px 60px; display: grid; gap: 30px; }
+.adm-alta { display: grid; grid-template-columns: 1fr 1.4fr 1.4fr auto; gap: 10px; align-items: end; }
+@media (max-width: 860px) { .adm-alta { grid-template-columns: minmax(0, 1fr); } }
+.adm-pw { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; background: var(--yellow); color: var(--on-yellow, #2B1512); border-radius: var(--radius); padding: 14px 16px; }
+.adm-pw > div:first-child { display: grid; gap: 4px; min-width: 0; }
+.adm-pw-lbl { font-weight: 600; font-size: 14px; }
+.adm-pw-code { font-family: var(--font-data); font-size: 24px; font-weight: 600; letter-spacing: .04em; overflow-wrap: anywhere; }
+.adm-pw-help { font-size: 13px; opacity: .85; }
+.adm-pw-acc { display: flex; gap: 8px; }
+.adm-pw .btn.ghost { color: #2B1512; border-color: #2B1512; }
+.rol-sel { padding: 5px 8px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 13px; }
+.estado { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.estado.ok { background: color-mix(in srgb, var(--yellow) 25%, transparent); color: var(--down); }
+.estado.pend { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--up); }
+.adm-acc { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.adm-acc .armed { background: var(--red); color: var(--on-red); }
+#adm-tabla td { vertical-align: middle; }
+#adm-tabla td.izq, #adm-tabla th.izq { text-align: left; }
+.rep-form { display: grid; gap: 16px; }
+.rep-filtros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 700px) { .rep-filtros { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.rep-hojas { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 16px; margin: 0; }
+.rep-hojas legend { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; padding: 0 6px; }
+.rep-hojas label { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+.rep-hojas input { accent-color: var(--red); width: 16px; height: 16px; }
+@media (max-width: 700px) { .rep-hojas { grid-template-columns: minmax(0, 1fr); } }
+.rep-acc { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
 /* Acceso */
 .userbox { display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap; }
 .userbox span { opacity: .9; overflow-wrap: anywhere; }
@@ -194,7 +223,7 @@ td.empty { color: var(--muted); }
       <span id="plaza-chips" class="filters"></span>
       <select id="anio" class="yearsel" aria-label="Año"></select>
     </div>
-    <div class="userbox" id="user-box" hidden><span id="user-email"></span><button type="button" class="chip" id="btn-salir">Cerrar sesión</button></div>
+    <div class="userbox" id="user-box" hidden><span id="user-email"></span><button type="button" class="chip" id="btn-admin" hidden>Admin</button><button type="button" class="chip" id="btn-salir">Cerrar sesión</button></div>
   </div>
 </header>
 
@@ -315,8 +344,69 @@ td.empty { color: var(--muted); }
   </div>
 </main>
 
+<main id="admin-main" hidden>
+  <div class="wrap">
+    <section aria-labelledby="h-usuarios">
+      <div class="sec-head">
+        <div>
+          <h2 id="h-usuarios">Usuarios</h2>
+          <p>Da de alta por número de empleado. La contraseña temporal se muestra una sola vez; al entrar, cada persona crea la suya.</p>
+        </div>
+        <button class="btn ghost small" id="adm-volver" type="button">Volver al tablero</button>
+      </div>
+      <form class="panel adm-alta" id="adm-form" autocomplete="off">
+        <div class="field"><label for="adm-num">Número de empleado</label><input id="adm-num" maxlength="20" required autocapitalize="off" spellcheck="false" placeholder="Ej. 10452"></div>
+        <div class="field"><label for="adm-nombre">Nombre</label><input id="adm-nombre" maxlength="80" required placeholder="Nombre y apellido"></div>
+        <div class="field"><label for="adm-rol">Rol</label>
+          <select id="adm-rol"><option value="captura">Captura: ve y registra gastos</option><option value="admin">Admin: además usuarios y reportes</option></select>
+        </div>
+        <button class="btn" id="adm-alta-btn" type="submit">Dar de alta</button>
+      </form>
+      <div class="adm-pw" id="adm-pw" hidden role="status">
+        <div>
+          <span class="adm-pw-lbl" id="adm-pw-lbl"></span>
+          <code class="adm-pw-code" id="adm-pw-code"></code>
+          <span class="adm-pw-help">Entrégasela en persona o por un medio privado. No se volverá a mostrar.</span>
+        </div>
+        <div class="adm-pw-acc"><button class="btn small" id="adm-pw-copiar" type="button">Copiar</button><button class="btn ghost small" id="adm-pw-listo" type="button">Listo</button></div>
+      </div>
+      <p class="form-msg" id="adm-msg" role="status"></p>
+      <div class="panel tscroll"><table id="adm-tabla"></table></div>
+    </section>
+
+    <section aria-labelledby="h-reportes">
+      <div class="sec-head">
+        <div>
+          <h2 id="h-reportes">Reportes en Excel</h2>
+          <p>Se generan con los datos actuales de Supabase y se descargan a tu equipo.</p>
+        </div>
+      </div>
+      <form class="panel rep-form" id="rep-form">
+        <div class="rep-filtros">
+          <div class="field"><label for="rep-anio">Año</label><select id="rep-anio"></select></div>
+          <div class="field"><label for="rep-plaza">Plaza</label><select id="rep-plaza"></select></div>
+          <div class="field"><label for="rep-desde">Desde</label><select id="rep-desde"></select></div>
+          <div class="field"><label for="rep-hasta">Hasta</label><select id="rep-hasta"></select></div>
+        </div>
+        <fieldset class="rep-hojas">
+          <legend>Hojas del archivo</legend>
+          <label><input type="checkbox" name="hoja" value="resumen" checked> Resumen</label>
+          <label><input type="checkbox" name="hoja" value="gastos" checked> Gastos detallados</label>
+          <label><input type="checkbox" name="hoja" value="proveedor" checked> Mes a mes por proveedor</label>
+          <label><input type="checkbox" name="hoja" value="plaza" checked> Mes a mes por plaza</label>
+          <label><input type="checkbox" name="hoja" value="presupuesto" checked> Presupuesto de TI</label>
+          <label><input type="checkbox" name="hoja" value="proyeccion" checked> Proyección con inflación</label>
+        </fieldset>
+        <div class="rep-acc"><button class="btn" id="rep-btn" type="submit">Descargar Excel</button><span class="status" id="rep-info"></span></div>
+      </form>
+      <p class="form-msg" id="rep-msg" role="status"></p>
+    </section>
+  </div>
+</main>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 (function () {
   const PLAZAS = ["Cancún", "Playa del Carmen", "Mérida", "Campeche"];
@@ -895,6 +985,7 @@ td.empty { color: var(--muted); }
     clearInterval(timer); timer = null; sesion = null;
     state.mode = "cargando"; state.gastos = []; state.presupuestos = {}; lastSync = null;
     $("app-main").hidden = true; $("auth-view").hidden = false; $("user-box").hidden = true; $("filtros").hidden = true;
+    $("admin-main").hidden = true; $("btn-admin").hidden = true; $("btn-admin").textContent = "Admin"; esAdmin = false;
   }
   async function entrarAlTablero() {
     const meta = sesion.user.user_metadata || {};
@@ -912,10 +1003,226 @@ td.empty { color: var(--muted); }
     $("auth-view").hidden = true; $("app-main").hidden = false; $("filtros").hidden = false;
     render();
     await cargar();
+    await revisarAdmin();
     clearInterval(timer);
     // Trae lo que capturen otras personas; se salta mientras se edita la inflación.
     timer = setInterval(() => { if (!document.hidden && state.mode === "supabase" && !cfgTimer && document.activeElement !== $("infl")) cargar(); }, 60000);
   }
+  // ---------- módulo Admin (solo rol admin; Supabase lo vuelve a validar en cada función) ----------
+  let esAdmin = false, usuarios = [];
+  const fmtFecha = (s) => (s ? new Date(s).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }) : "—");
+  const miEmpleado = () => String(((sesion && sesion.user.user_metadata) || {}).empleado || "");
+  // Los mensajes de las funciones de Supabase (código P0001) ya vienen en español y listos para mostrar.
+  const msgAdmin = (e) => (e && e.code === "P0001" ? String(e.message) : avisoDe(e).texto);
+
+  async function revisarAdmin() {
+    const r = await sb.rpc("es_admin");
+    esAdmin = !r.error && r.data === true;
+    $("btn-admin").hidden = !esAdmin;
+  }
+  function verAdmin(si) {
+    if (si && !esAdmin) return;
+    $("app-main").hidden = si; $("admin-main").hidden = !si; $("filtros").hidden = si;
+    $("btn-admin").textContent = si ? "Tablero" : "Admin";
+    if (si) { cargarUsuarios(); prepararReportes(); window.scrollTo(0, 0); }
+  }
+  $("btn-admin").addEventListener("click", () => verAdmin($("admin-main").hidden));
+  $("adm-volver").addEventListener("click", () => verAdmin(false));
+
+  async function cargarUsuarios() {
+    const r = await sb.rpc("admin_listar_usuarios");
+    if (r.error) { $("adm-msg").textContent = "No se pudieron cargar los usuarios. " + msgAdmin(r.error); return; }
+    usuarios = r.data || [];
+    pintarUsuarios();
+  }
+  function pintarUsuarios() {
+    const yo = miEmpleado();
+    const t = $("adm-tabla");
+    if (!usuarios.length) { t.innerHTML = '<tbody><tr><td class="empty-state" style="position:static">Todavía no hay usuarios.</td></tr></tbody>'; return; }
+    t.innerHTML = "<thead><tr><th>Empleado</th><th class='izq'>Nombre</th><th class='izq'>Rol</th><th class='izq'>Estado</th><th class='izq'>Último acceso</th><th></th></tr></thead><tbody>" +
+      usuarios.map((u) => {
+        const propio = u.empleado === yo;
+        return "<tr><td>" + esc(u.empleado) + (propio ? " <span class='status'>(tú)</span>" : "") + "</td><td class='izq'>" + esc(u.nombre) + "</td><td class='izq'>" +
+          '<select class="rol-sel" data-emp="' + esc(u.empleado) + '"' + (propio ? " disabled title='No puedes cambiar tu propio rol'" : "") + ">" +
+          '<option value="captura"' + (u.rol === "captura" ? " selected" : "") + ">Captura</option><option value=\"admin\"" + (u.rol === "admin" ? " selected" : "") + ">Admin</option></select></td>" +
+          "<td class='izq'>" + (u.debe_cambiar ? '<span class="estado pend">Pendiente de crear contraseña</span>' : '<span class="estado ok">Activo</span>') + "</td>" +
+          "<td class='izq'>" + fmtFecha(u.ultimo_acceso) + "</td><td><div class='adm-acc'>" +
+          '<button type="button" class="btn ghost small" data-acc="restablecer" data-emp="' + esc(u.empleado) + '">Restablecer contraseña</button>' +
+          (propio ? "" : '<button type="button" class="btn ghost small" data-acc="baja" data-emp="' + esc(u.empleado) + '">Quitar acceso</button>') +
+          "</div></td></tr>";
+      }).join("") + "</tbody>";
+  }
+  function mostrarPw(emp, nombre, pw) {
+    $("adm-pw-lbl").textContent = "Contraseña temporal de " + emp + (nombre ? " · " + nombre : "");
+    $("adm-pw-code").textContent = pw;
+    $("adm-pw").hidden = false;
+    $("adm-pw").scrollIntoView({ block: "nearest" });
+  }
+  $("adm-pw-listo").addEventListener("click", () => { $("adm-pw").hidden = true; $("adm-pw-code").textContent = ""; });
+  $("adm-pw-copiar").addEventListener("click", async () => {
+    const b = $("adm-pw-copiar");
+    try { await navigator.clipboard.writeText($("adm-pw-code").textContent); b.textContent = "Copiada"; }
+    catch (e) { const s = getSelection(), r = document.createRange(); r.selectNodeContents($("adm-pw-code")); s.removeAllRanges(); s.addRange(r); b.textContent = "Selecciónala y cópiala"; }
+    setTimeout(() => (b.textContent = "Copiar"), 2500);
+  });
+
+  $("adm-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const num = $("adm-num").value.trim().toLowerCase(), nombre = $("adm-nombre").value.trim().replace(/\s+/g, " "), rol = $("adm-rol").value;
+    if (!/^[a-z0-9-]{1,20}$/.test(num)) { $("adm-msg").textContent = "El número de empleado solo puede tener letras, números o guion."; return; }
+    $("adm-alta-btn").disabled = true; $("adm-msg").textContent = "Dando de alta…";
+    const r = await sb.rpc("admin_alta_usuario", { p_empleado: num, p_nombre: nombre, p_rol: rol });
+    $("adm-alta-btn").disabled = false;
+    if (r.error) { $("adm-msg").textContent = "No se dio de alta. " + msgAdmin(r.error); return; }
+    $("adm-msg").textContent = "Alta lista: " + num + " (" + (rol === "admin" ? "Admin" : "Captura") + ").";
+    mostrarPw(num, nombre, r.data);
+    $("adm-num").value = ""; $("adm-nombre").value = ""; $("adm-rol").value = "captura";
+    cargarUsuarios();
+  });
+
+  $("adm-tabla").addEventListener("change", async (e) => {
+    const s = e.target.closest(".rol-sel");
+    if (!s) return;
+    s.disabled = true;
+    const r = await sb.rpc("admin_cambiar_rol", { p_empleado: s.dataset.emp, p_rol: s.value });
+    $("adm-msg").textContent = r.error ? "No se cambió el rol. " + msgAdmin(r.error) : "Rol de " + s.dataset.emp + " cambiado a " + (s.value === "admin" ? "Admin" : "Captura") + ".";
+    cargarUsuarios();
+  });
+  $("adm-tabla").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-acc]");
+    if (!b) return;
+    const emp = b.dataset.emp, acc = b.dataset.acc;
+    if (!b.classList.contains("armed")) {
+      $("adm-tabla").querySelectorAll(".armed").forEach((x) => { x.classList.remove("armed"); x.textContent = x.dataset.acc === "baja" ? "Quitar acceso" : "Restablecer contraseña"; });
+      b.classList.add("armed"); b.textContent = acc === "baja" ? "¿Quitar a " + emp + "?" : "¿Nueva contraseña?";
+      return;
+    }
+    b.disabled = true;
+    if (acc === "restablecer") {
+      const r = await sb.rpc("admin_restablecer_usuario", { p_empleado: emp });
+      if (r.error) $("adm-msg").textContent = "No se restableció. " + msgAdmin(r.error);
+      else { const u = usuarios.find((x) => x.empleado === emp); mostrarPw(emp, u ? u.nombre : "", r.data); $("adm-msg").textContent = "Contraseña restablecida para " + emp + "."; }
+    } else {
+      const r = await sb.rpc("admin_baja_usuario", { p_empleado: emp });
+      $("adm-msg").textContent = r.error ? "No se quitó el acceso. " + msgAdmin(r.error) : "Acceso retirado para " + emp + ".";
+    }
+    cargarUsuarios();
+  });
+
+  // ---------- reportes en Excel ----------
+  const FMT_DINERO = '"$"#,##0.00';
+  function prepararReportes() {
+    const anios = [...new Set([...state.gastos.map((g) => g.mes.slice(0, 4)), "2026", "2027", "2028", "2029", "2030"])].sort();
+    const sel = (id, html, val) => { const s = $(id); if (!s.options.length) s.innerHTML = html; if (val != null) s.value = val; };
+    $("rep-anio").innerHTML = anios.map((y) => "<option>" + y + "</option>").join("");
+    $("rep-anio").value = state.ui.anio || anios[0];
+    sel("rep-plaza", ["Todas", ...PLAZAS].map((p) => '<option value="' + esc(p) + '">' + (p === "Todas" ? "Las 4 plazas" : esc(p)) + "</option>").join(""), state.ui.plaza);
+    const meses = MESES_L.map((m, i) => '<option value="' + (i + 1) + '">' + m.charAt(0).toUpperCase() + m.slice(1) + "</option>").join("");
+    sel("rep-desde", meses); sel("rep-hasta", meses, $("rep-hasta").value || "12");
+    if (!$("rep-desde").value) $("rep-desde").value = "1";
+    $("rep-info").textContent = window.XLSX ? "" : "Cargando el generador de Excel…";
+  }
+
+  function hoja(filas, anchos, esDinero) {
+    const ws = XLSX.utils.aoa_to_sheet(filas);
+    ws["!cols"] = anchos.map((w) => ({ wch: w }));
+    const rg = XLSX.utils.decode_range(ws["!ref"]);
+    for (let R = rg.s.r; R <= rg.e.r; R++) for (let C = rg.s.c; C <= rg.e.c; C++) {
+      const c = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+      if (c && c.t === "n" && esDinero(R, C)) c.z = FMT_DINERO;
+    }
+    return ws;
+  }
+
+  $("rep-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const msg = $("rep-msg");
+    if (!window.XLSX) { msg.textContent = "El generador de Excel no cargó. Revisa tu internet y recarga la página."; return; }
+    const anio = $("rep-anio").value, plaza = $("rep-plaza").value;
+    let desde = Number($("rep-desde").value), hasta = Number($("rep-hasta").value);
+    if (desde > hasta) [desde, hasta] = [hasta, desde];
+    const hojas = [...document.querySelectorAll('input[name="hoja"]:checked')].map((x) => x.value);
+    if (!hojas.length) { msg.textContent = "Elige al menos una hoja."; return; }
+
+    const mesesRango = Array.from({ length: hasta - desde + 1 }, (_, i) => anio + "-" + String(desde + i).padStart(2, "0"));
+    const etiquetas = mesesRango.map(mesLabel);
+    const enRango = (g) => mesesRango.includes(g.mes);
+    const delAnio = state.gastos.filter((g) => g.mes.startsWith(anio));
+    const lista = delAnio.filter((g) => enRango(g) && (plaza === "Todas" || g.plaza === plaza));
+    const total = lista.reduce((s, g) => s + g.monto, 0);
+    const plazaTxt = plaza === "Todas" ? "Las 4 plazas" : plaza;
+    const periodo = mesLargo(mesesRango[0]) + " a " + mesLargo(mesesRango[mesesRango.length - 1]);
+    const wb = XLSX.utils.book_new();
+
+    if (hojas.includes("resumen")) {
+      const asignado = state.presupuestos[anio];
+      const gastadoAnio = delAnio.reduce((s, g) => s + g.monto, 0);
+      const porPlaza = sumBy(lista, (g) => g.plaza), porProv = [...sumBy(lista, (g) => g.proveedor).entries()].sort((a, b) => b[1] - a[1]);
+      const filas = [["Gastos Plazas Península · Reporte"], [], ["Generado", new Date().toLocaleString("es-MX")], ["Generado por", "Empleado " + miEmpleado()],
+        ["Plaza", plazaTxt], ["Periodo", periodo], ["Registros", lista.length], ["Total del periodo", total], [],
+        ["Presupuesto de TI " + anio + " (4 plazas)"], ["Asignado", asignado != null ? asignado : "Sin asignar"], ["Gastado en " + anio, gastadoAnio],
+        ["Disponible", asignado != null ? asignado - gastadoAnio : "—"], [], ["Total por plaza"], ...(plaza === "Todas" ? PLAZAS : [plaza]).map((p) => [p, porPlaza.get(p) || 0]),
+        [], ["Proveedores del periodo"], ...porProv.map(([p, v]) => [p, v])];
+      XLSX.utils.book_append_sheet(wb, hoja(filas, [34, 22], (R, C) => C === 1 && R !== 6), "Resumen");
+    }
+    if (hojas.includes("gastos")) {
+      const ord = lista.slice().sort((a, b) => a.mes.localeCompare(b.mes) || a.plaza.localeCompare(b.plaza) || b.monto - a.monto);
+      const filas = [["Mes", "Plaza", "Proveedor", "Concepto", "Monto (MXN)"], ...ord.map((g) => [mesLabel(g.mes), g.plaza, g.proveedor, g.concepto, g.monto]), [], ["Total", "", "", "", total]];
+      XLSX.utils.book_append_sheet(wb, hoja(filas, [12, 18, 30, 36, 16], (R, C) => C === 4), "Gastos");
+    }
+    const matriz = (clave, titulo, claves) => {
+      const cel = sumBy(lista, (g) => clave(g) + "|" + g.mes);
+      const tot = mesesRango.map(() => 0);
+      const filas = [[titulo, ...etiquetas, "Total"], ...claves.map((k) => {
+        const vals = mesesRango.map((m, i) => { const v = cel.get(k + "|" + m) || 0; tot[i] += v; return v; });
+        return [k, ...vals, vals.reduce((a, b) => a + b, 0)];
+      }), ["Total", ...tot, tot.reduce((a, b) => a + b, 0)]];
+      return hoja(filas, [30, ...etiquetas.map(() => 13), 15], (R, C) => C > 0);
+    };
+    if (hojas.includes("proveedor")) {
+      const provs = [...sumBy(lista, (g) => g.proveedor).entries()].sort((a, b) => b[1] - a[1]).map((x) => x[0]);
+      XLSX.utils.book_append_sheet(wb, matriz((g) => g.proveedor, "Proveedor", provs), "Por proveedor");
+    }
+    if (hojas.includes("plaza")) XLSX.utils.book_append_sheet(wb, matriz((g) => g.plaza, "Plaza", plaza === "Todas" ? PLAZAS : [plaza]), "Por plaza");
+    if (hojas.includes("presupuesto")) {
+      // El presupuesto es de las 4 plazas: aquí se ignora el filtro de plaza.
+      const asignado = state.presupuestos[anio];
+      const porMes = sumBy(delAnio, (g) => g.mes);
+      let acum = 0;
+      const filas = [["Presupuesto de TI " + anio + " · 4 plazas"], ["Asignado", asignado != null ? asignado : "Sin asignar"], [],
+        ["Mes", "Gastado en el mes", "Acumulado", "Disponible", "% usado"],
+        ...MESES.map((_, i) => {
+          const m = anio + "-" + String(i + 1).padStart(2, "0"), v = porMes.get(m) || 0;
+          acum += v;
+          return [mesLabel(m), v, acum, asignado != null ? asignado - acum : "", asignado ? Math.round((acum / asignado) * 1000) / 10 : ""];
+        })];
+      XLSX.utils.book_append_sheet(wb, hoja(filas, [18, 18, 18, 18, 10], (R, C) => (R === 1 && C === 1) || (R > 3 && C >= 1 && C <= 3)), "Presupuesto TI");
+    }
+    if (hojas.includes("proyeccion")) {
+      const base = state.gastos.filter((g) => plaza === "Todas" || g.plaza === plaza);
+      const meses = [...new Set(base.map((g) => g.mes))].sort();
+      if (meses.length) {
+        const infl = Number(state.config.inflacion) || 0, H = Number(state.config.horizonte) || 12;
+        const last = meses[meses.length - 1], b3 = [addMes(last, -2), addMes(last, -1), last];
+        const n = meses.filter((m) => m >= b3[0] && m <= last).length || 1;
+        const k = Math.pow(1 + infl / 100, 1 / 12) - 1;
+        const fut = Array.from({ length: H }, (_, i) => addMes(last, i + 1));
+        const prov = [...sumBy(base.filter((g) => b3.includes(g.mes)), (g) => g.proveedor).entries()].map(([p, s]) => [p, s / n]);
+        const filas = [["Proyección · " + plazaTxt], ["Inflación anual", infl / 100], ["Base", "Promedio mensual de " + mesLabel(b3[3 - n]) + " a " + mesLabel(last)], [],
+          ["Proveedor", "Promedio actual", ...fut.map(mesLabel), "Total " + H + " meses"],
+          ...prov.map(([p, b]) => { const v = fut.map((_, i) => b * Math.pow(1 + k, i + 1)); return [p, b, ...v, v.reduce((a, c) => a + c, 0)]; })];
+        const ws = hoja(filas, [30, 16, ...fut.map(() => 13), 16], (R, C) => R > 4 && C >= 1);
+        ws["B2"].z = "0.0%";
+        XLSX.utils.book_append_sheet(wb, ws, "Proyección");
+      }
+    }
+    if (!wb.SheetNames.length) { msg.textContent = "No hay datos para las hojas elegidas."; return; }
+    const slug = plazaTxt.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const nombre = "gastos-plazas_" + anio + "_" + String(desde).padStart(2, "0") + "-" + String(hasta).padStart(2, "0") + "_" + slug + ".xlsx";
+    XLSX.writeFile(wb, nombre);
+    msg.textContent = "Descargado: " + nombre + " (" + wb.SheetNames.length + " hojas, " + lista.length + " registros).";
+  });
+
   async function start() {
     modoAcceso("entrar");
     if (!window.supabase) { authMsg("No se pudo cargar la conexión con Supabase. Revisa tu internet y recarga la página.", true); return; }

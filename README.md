@@ -6,11 +6,27 @@ Control de gastos por proveedor para Cancún, Playa del Carmen, Mérida y Campec
 
 Cada persona entra con su **número de empleado** y una contraseña. La primera vez usa una contraseña temporal y la página le pide crear una propia.
 
-Todo se administra en supabase.com → proyecto Gastos-Plazas → **SQL Editor**:
+Hay dos roles:
+
+- **Captura:** ve el tablero y registra gastos.
+- **Admin:** además ve el botón **Admin**, donde da de alta usuarios, restablece contraseñas, quita accesos y descarga reportes en Excel.
+
+### Primer administrador
+
+El primer admin se crea una sola vez en supabase.com → proyecto Gastos-Plazas → **SQL Editor**:
+
+```sql
+select admin.alta_empleado('TU-NUMERO', 'Tu nombre', 'admin');
+select * from admin.credenciales_iniciales;
+```
+
+Después, todo lo demás se hace desde el módulo **Admin** de la página.
+
+### Desde el SQL Editor (opcional)
 
 | Para | Ejecuta |
 |---|---|
-| Dar de alta | `select admin.alta_empleado('12345', 'Nombre Apellido');` |
+| Dar de alta | `select admin.alta_empleado('12345', 'Nombre Apellido', 'captura');` |
 | Ver contraseñas temporales | `select * from admin.credenciales_iniciales;` |
 | Restablecer una contraseña | `select admin.restablecer_contrasena('12345');` |
 | Quitar el acceso | `select admin.baja_empleado('12345');` |
