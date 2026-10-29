@@ -148,6 +148,32 @@ td.empty { color: var(--muted); }
 .budget-form input { font-family: var(--font-data); font-size: 18px; font-weight: 600; }
 .budget-msg { font-size: 13px; color: var(--muted); margin: 0; min-height: 1.2em; }
 
+/* Los 12 meses del año */
+.meses-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 960px) { .meses-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .meses-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .meses-grid { gap: 8px; } .mes-card { padding: 8px 9px; } .mes-card .v { font-size: 13px; } }
+@media (max-width: 330px) { .meses-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.mes-card { text-align: left; background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 10px 12px; cursor: pointer; display: grid; gap: 3px; min-width: 0; }
+.mes-card:hover { border-color: var(--yellow); }
+.mes-card .m { font-family: var(--font-display); font-weight: 800; font-size: 16px; }
+.mes-card .v { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.mes-card.vacio .v { color: var(--muted); font-weight: 400; }
+.mes-card .delta { min-height: 1.3em; }
+.mes-card .strip { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--surface-2); margin-top: 4px; }
+.mes-card .strip i { display: block; height: 100%; }
+.mes-card.hoy { border-style: dashed; border-color: var(--yellow); }
+.mes-card[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: var(--on-red); }
+.mes-card[aria-pressed="true"] .strip { box-shadow: 0 0 0 1.5px var(--on-red); }
+.mes-card[aria-pressed="true"] .delta,.mes-card[aria-pressed="true"].vacio .v { color: var(--on-red); }
+.mes-det-head { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.mes-det-head h3 { font-size: 18px; }
+.mes-det-head .num { font-size: 20px; font-weight: 600; }
+.share { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.share .bar { margin-top: 0; min-width: 60px; width: 80px; }
+.share .bar::after { display: none; }
+.share .bar i { left: 0; background: var(--yellow); }
+
 /* Módulo Admin */
 #admin-main .wrap { padding-block: 24px 60px; display: grid; gap: 30px; }
 .adm-alta { display: grid; grid-template-columns: 1fr 1.4fr 1.4fr auto; gap: 10px; align-items: end; }
@@ -278,6 +304,15 @@ td.empty { color: var(--muted); }
         <button class="btn wide" id="f-guardar" type="submit">Agregar gasto</button>
       </form>
       <p class="form-msg" id="form-msg" role="status"></p>
+    </section>
+
+    <section aria-labelledby="h-meses">
+      <div class="sec-head">
+        <h2 id="h-meses">Los 12 meses de <span id="meses-anio"></span></h2>
+        <p>Toca un mes para ver en qué se gastó.</p>
+      </div>
+      <div class="meses-grid" id="meses-grid" role="group" aria-label="Meses del año"></div>
+      <div class="panel" id="mes-detalle"></div>
     </section>
 
     <section aria-labelledby="h-mensual">
@@ -418,7 +453,7 @@ td.empty { color: var(--muted); }
     gastos: [],
     config: { inflacion: 3.8, horizonte: 12 },
     presupuestos: {},           // { "2026": 1500000, ... } presupuesto anual de TI
-    ui: { plaza: "Todas", anio: null, compA: "", compB: "", movMes: "" },
+    ui: { plaza: "Todas", anio: null, compA: "", compB: "", movMes: "", mesVista: "" },
   };
   const charts = {};
 
@@ -458,6 +493,7 @@ td.empty { color: var(--muted); }
     ensureDefaults(meses);
     renderKPIs(list, meses);
     renderPresupuesto();
+    renderMesesAnio(list);
     renderMatriz(list);
     renderChartMensual(list);
     renderComparativa(list, meses);
@@ -582,6 +618,45 @@ td.empty { color: var(--muted); }
       '<span class="restante-lbl">' + (restante >= 0 ? "Disponible" : "Excedido por") + '</span><div class="restante' + (restante < 0 ? " over" : "") + '">' + money.format(Math.abs(restante)) + "</div>" +
       '<div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.min(100, usado).toFixed(0) + '" aria-label="Presupuesto usado"><i class="' + cls + '" style="width:' + Math.min(100, usado).toFixed(1) + '%"></i></div>' +
       '<div class="budget-facts"><div>Asignado<strong>' + money.format(asignado) + '</strong></div><div>Gastado (' + usado.toFixed(1) + '%)<strong>' + money.format(gastado) + "</strong></div><div>Al ritmo actual<strong>" + ritmo + "</strong></div></div>";
+  }
+
+  // Una tarjeta por mes del año elegido; el mes tocado muestra su desglose por plaza y por proveedor.
+  function renderMesesAnio(list) {
+    const anio = state.ui.anio;
+    $("meses-anio").textContent = anio || "";
+    const meses = MESES.map((_, i) => anio + "-" + String(i + 1).padStart(2, "0"));
+    if (!meses.includes(state.ui.mesVista)) {
+      const conDatos = meses.filter((m) => list.some((g) => g.mes === m));
+      state.ui.mesVista = meses.includes(mesHoy) ? mesHoy : conDatos.pop() || meses[0];
+    }
+    const t = chartTheme();
+    const porMes = sumBy(list, (g) => g.mes);
+    const porPlazaMes = sumBy(list, (g) => g.plaza + "|" + g.mes);
+    const plazas = state.ui.plaza === "Todas" ? PLAZAS : [state.ui.plaza];
+    $("meses-grid").innerHTML = meses.map((m, i) => {
+      const v = porMes.get(m) || 0, pv = porMes.get(addMes(m, -1)) || 0;
+      const strip = v ? plazas.map((p) => { const x = porPlazaMes.get(p + "|" + m) || 0; return x ? '<i style="width:' + (x / v * 100).toFixed(1) + "%;background:" + t.plazas[PLAZAS.indexOf(p)] + '"></i>' : ""; }).join("") : "";
+      return '<button type="button" class="mes-card' + (v ? "" : " vacio") + (m === mesHoy ? " hoy" : "") + '" data-mes="' + m + '" aria-pressed="' + (m === state.ui.mesVista) + '" aria-label="' + MESES_L[i] + " " + anio + ": " + money.format(v) + '">' +
+        '<span class="m">' + MESES[i] + '</span><span class="v">' + (v ? money.format(v) : "Sin gastos") + "</span>" + (v ? deltaHtml(pv, v) : '<span class="delta"></span>') +
+        '<span class="strip">' + strip + "</span></button>";
+    }).join("");
+
+    const det = $("mes-detalle"), m = state.ui.mesVista;
+    const rows = list.filter((g) => g.mes === m);
+    const total = rows.reduce((s, g) => s + g.monto, 0);
+    if (!rows.length) { det.innerHTML = '<div class="empty-state">Sin gastos en ' + mesLargo(m) + ".</div>"; return; }
+    const tablaDe = (titulo, entries, dot) => {
+      let h = "<table><thead><tr><th>" + titulo + "</th><th>Monto</th><th>% del mes</th></tr></thead><tbody>";
+      for (const [k, v] of entries) {
+        const p = v / total * 100;
+        h += "<tr><td>" + (dot ? '<span class="plaza-dot" style="background:' + t.plazas[PLAZAS.indexOf(k)] + '"></span>' : "") + esc(k) + '</td><td><span class="amt">' + money.format(v) + '</span></td><td><div class="share"><span class="num">' + p.toFixed(1) + '%</span><span class="bar"><i style="width:' + p.toFixed(1) + '%"></i></span></div></td></tr>';
+      }
+      return h + "</tbody></table>";
+    };
+    const provs = [...sumBy(rows, (g) => g.proveedor).entries()].sort((a, b) => b[1] - a[1]);
+    const pls = [...sumBy(rows, (g) => g.plaza).entries()].sort((a, b) => b[1] - a[1]);
+    det.innerHTML = '<div class="mes-det-head"><h3>' + mesLargo(m).replace(/^./, (c) => c.toUpperCase()) + '</h3><span class="num">' + money.format(total) + "</span></div>" +
+      '<div class="two"><div class="tscroll">' + tablaDe("Proveedor", provs) + '</div><div class="tscroll">' + tablaDe("Plaza", pls, true) + "</div></div>";
   }
 
   function renderMatriz(list) {
@@ -848,6 +923,7 @@ td.empty { color: var(--muted); }
   $("comp-a").addEventListener("change", (e) => { state.ui.compA = e.target.value; render(); });
   $("comp-b").addEventListener("change", (e) => { state.ui.compB = e.target.value; render(); });
   $("mov-mes").addEventListener("change", (e) => { state.ui.movMes = e.target.value; render(); });
+  $("meses-grid").addEventListener("click", (e) => { const b = e.target.closest(".mes-card"); if (b) { state.ui.mesVista = b.dataset.mes; renderMesesAnio(filtrados()); } });
   $("infl").addEventListener("input", (e) => {
     const v = parseFloat(e.target.value);
     if (!isFinite(v) || v < -10 || v > 100) return;
