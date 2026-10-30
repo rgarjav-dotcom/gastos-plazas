@@ -11,6 +11,15 @@ Hay dos roles:
 - **Captura:** ve el tablero y registra gastos.
 - **Admin:** además ve el botón **Admin**, donde da de alta usuarios, restablece contraseñas, quita accesos y descarga reportes en Excel.
 
+### Acceso por plaza
+
+Cada usuario de **Captura** tiene una plaza: Cancún, Playa del Carmen, Mérida, Campeche o **Las 4 plazas**.
+
+- Con una plaza asignada solo ve y captura los gastos de esa plaza. No ve el Presupuesto de TI y no puede cambiar la inflación guardada.
+- La base de datos aplica esta regla, no solo la página.
+- Los **Admin** siempre ven las 4 plazas.
+- La plaza se elige al dar de alta y se cambia en la tabla de usuarios del módulo Admin.
+
 ### Primer administrador
 
 El primer admin se crea una sola vez en supabase.com → proyecto Gastos-Plazas → **SQL Editor**:
@@ -26,7 +35,8 @@ Después, todo lo demás se hace desde el módulo **Admin** de la página.
 
 | Para | Ejecuta |
 |---|---|
-| Dar de alta | `select admin.alta_empleado('12345', 'Nombre Apellido', 'captura');` |
+| Dar de alta | `select admin.alta_empleado('12345', 'Nombre Apellido', 'captura', 'Mérida');` (sin plaza = las 4) |
+| Cambiar la plaza | `update public.usuarios_autorizados set plaza = 'Cancún' where empleado = '12345';` |
 | Ver contraseñas temporales | `select * from admin.credenciales_iniciales;` |
 | Restablecer una contraseña | `select admin.restablecer_contrasena('12345');` |
 | Quitar el acceso | `select admin.baja_empleado('12345');` |

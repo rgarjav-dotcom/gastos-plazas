@@ -176,7 +176,7 @@ td.empty { color: var(--muted); }
 
 /* Módulo Admin */
 #admin-main .wrap { padding-block: 24px 60px; display: grid; gap: 30px; }
-.adm-alta { display: grid; grid-template-columns: 1fr 1.4fr 1.4fr auto; gap: 10px; align-items: end; }
+.adm-alta { display: grid; grid-template-columns: 1fr 1.4fr 1.4fr 1.1fr auto; gap: 10px; align-items: end; }
 @media (max-width: 860px) { .adm-alta { grid-template-columns: minmax(0, 1fr); } }
 .adm-pw { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; background: var(--yellow); color: var(--on-yellow, #2B1512); border-radius: var(--radius); padding: 14px 16px; }
 .adm-pw > div:first-child { display: grid; gap: 4px; min-width: 0; }
@@ -274,7 +274,7 @@ td.empty { color: var(--muted); }
       <div class="kpis" id="kpis"></div>
     </section>
 
-    <section aria-labelledby="h-ti">
+    <section aria-labelledby="h-ti" id="sec-ti">
       <div class="sec-head">
         <h2 id="h-ti">Presupuesto de TI <span id="ti-anio"></span></h2>
         <p>Un monto anual para las 4 plazas. Cada gasto capturado en el año lo va descontando.</p>
@@ -371,7 +371,7 @@ td.empty { color: var(--muted); }
       <div class="sec-head">
         <div>
           <h2 id="h-usuarios">Usuarios</h2>
-          <p>Da de alta por número de empleado. La contraseña temporal se muestra una sola vez; al entrar, cada persona crea la suya.</p>
+          <p>Da de alta por número de empleado. Quien tiene una plaza solo ve y captura los gastos de esa plaza. La contraseña temporal se muestra una sola vez; al entrar, cada persona crea la suya.</p>
         </div>
         <button class="btn ghost small" id="adm-volver" type="button">Volver al tablero</button>
       </div>
@@ -381,6 +381,7 @@ td.empty { color: var(--muted); }
         <div class="field"><label for="adm-rol">Rol</label>
           <select id="adm-rol"><option value="captura">Captura: ve y registra gastos</option><option value="admin">Admin: además usuarios y reportes</option></select>
         </div>
+        <div class="field"><label for="adm-plaza">Plaza que puede ver</label><select id="adm-plaza"></select></div>
         <button class="btn" id="adm-alta-btn" type="submit">Dar de alta</button>
       </form>
       <div class="adm-pw" id="adm-pw" hidden role="status">
@@ -453,6 +454,7 @@ td.empty { color: var(--muted); }
     gastos: [],
     config: { inflacion: 3.8, horizonte: 12 },
     presupuestos: {},           // { "2026": 1500000, ... } presupuesto anual de TI
+    plazaFija: null,            // plaza del usuario cuando solo puede ver una
     ui: { plaza: "Todas", anio: null, compA: "", compB: "", movMes: "", mesVista: "" },
   };
   const charts = {};
@@ -503,8 +505,9 @@ td.empty { color: var(--muted); }
 
   function renderChips() {
     const box = $("plaza-chips");
-    const opts = ["Todas", ...PLAZAS];
-    if (box.childElementCount !== opts.length) {
+    const opts = state.plazaFija ? [state.plazaFija] : ["Todas", ...PLAZAS];
+    if (box.dataset.opts !== opts.join("|")) {
+      box.dataset.opts = opts.join("|");
       box.innerHTML = opts.map((p) => '<button type="button" class="chip" data-plaza="' + esc(p) + '">' + esc(p) + "</button>").join("");
       box.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { state.ui.plaza = b.dataset.plaza; state.ui.compA = state.ui.compB = state.ui.movMes = ""; render(); }));
     }
@@ -541,9 +544,11 @@ td.empty { color: var(--muted); }
 
   function renderForm() {
     const sel = $("f-plaza");
-    if (!sel.options.length) {
-      sel.innerHTML = PLAZAS.map((p) => "<option>" + esc(p) + "</option>").join("");
-      $("f-mes").value = mesHoy;
+    const plazas = state.plazaFija ? [state.plazaFija] : PLAZAS;
+    if (sel.dataset.opts !== plazas.join("|")) {
+      sel.dataset.opts = plazas.join("|");
+      sel.innerHTML = plazas.map((p) => "<option>" + esc(p) + "</option>").join("");
+      if (!$("f-mes").value) $("f-mes").value = mesHoy;
     }
     if (state.ui.plaza !== "Todas" && document.activeElement !== sel) sel.value = state.ui.plaza;
     const provs = [...new Set(state.gastos.map((g) => g.proveedor))].sort((a, b) => a.localeCompare(b, "es"));
@@ -588,6 +593,8 @@ td.empty { color: var(--muted); }
 
   // El presupuesto es de las 4 plazas: se calcula con todos los gastos del año, sin importar el filtro de plaza.
   function renderPresupuesto() {
+    $("sec-ti").hidden = !!state.plazaFija;
+    if (state.plazaFija) return;
     const anio = state.ui.anio;
     $("ti-anio").textContent = anio || "";
     $("ti-monto-lbl").textContent = "Presupuesto asignado " + (anio || "") + " (MXN)";
@@ -882,7 +889,7 @@ td.empty { color: var(--muted); }
         .filter((x) => PLAZAS.includes(x.plaza) && /^\d{4}-\d{2}$/.test(x.mes));
       state.presupuestos = {};
       for (const r of p.data || []) state.presupuestos[String(r.anio)] = Number(r.monto);
-      if (a.data && !cfgTimer) state.config = { inflacion: Number(a.data.inflacion ?? 3.8), horizonte: Number(a.data.horizonte ?? 12) };
+      if (a.data && !cfgTimer && !cfgLocal) state.config = { inflacion: Number(a.data.inflacion ?? 3.8), horizonte: Number(a.data.horizonte ?? 12) };
       state.mode = "supabase"; state.aviso = null; lastSync = new Date();
     } catch (e) {
       if (esRed(e) && !reintento) {
@@ -907,8 +914,10 @@ td.empty { color: var(--muted); }
     if (!UUID.test(id)) throw { message: "id inválido" };
     await escribir(sb.from("gastos").delete().eq("id", id));
   }
-  let cfgTimer = null;
+  // Un usuario de una sola plaza puede mover la inflación para ver su proyección, pero no la guarda para todos.
+  let cfgTimer = null, cfgLocal = false;
   function saveConfig() {
+    if (state.plazaFija) { cfgLocal = true; return; }
     clearTimeout(cfgTimer);
     cfgTimer = setTimeout(async () => {
       const inf = Number(state.config.inflacion), H = [6, 12, 18, 24].includes(Number(state.config.horizonte)) ? Number(state.config.horizonte) : 12;
@@ -1044,7 +1053,8 @@ td.empty { color: var(--muted); }
   $("btn-salir").addEventListener("click", async () => { await sb.auth.signOut(); });
 
   function mostrarAcceso() {
-    clearInterval(timer); timer = null; sesion = null;
+    clearInterval(timer); timer = null; sesion = null; cfgLocal = false;
+    state.plazaFija = null; state.ui.plaza = "Todas"; state.ui.mesVista = "";
     state.mode = "cargando"; state.gastos = []; state.presupuestos = {}; lastSync = null;
     $("app-main").hidden = true; $("auth-view").hidden = false; $("user-box").hidden = true; $("filtros").hidden = true;
     $("admin-main").hidden = true; $("btn-admin").hidden = true; $("btn-admin").textContent = "Admin"; esAdmin = false;
@@ -1062,6 +1072,12 @@ td.empty { color: var(--muted); }
       await sb.auth.signOut();
       return;
     }
+    // Usuario de una plaza: solo esa plaza (las reglas de Supabase tampoco le entregan las demás).
+    const pz = await sb.rpc("mi_plaza");
+    if (pz.error) { authMsg(traducir(pz.error), true); await sb.auth.signOut(); return; }
+    state.plazaFija = PLAZAS.includes(pz.data) ? pz.data : null;
+    state.ui.plaza = state.plazaFija || "Todas";
+    $("user-email").textContent += " · " + (state.plazaFija || "Las 4 plazas");
     $("auth-view").hidden = true; $("app-main").hidden = false; $("filtros").hidden = false;
     render();
     await cargar();
@@ -1076,6 +1092,13 @@ td.empty { color: var(--muted); }
   const miEmpleado = () => String(((sesion && sesion.user.user_metadata) || {}).empleado || "");
   // Los mensajes de las funciones de Supabase (código P0001) ya vienen en español y listos para mostrar.
   const msgAdmin = (e) => (e && e.code === "P0001" ? String(e.message) : avisoDe(e).texto);
+
+  // Plaza vacía = las 4 plazas. Un admin siempre ve las 4.
+  const plazaTxt = (p) => p || "Las 4 plazas";
+  const opcionesPlaza = (val) => ["", ...PLAZAS].map((p) => '<option value="' + esc(p) + '"' + (p === (val || "") ? " selected" : "") + ">" + esc(plazaTxt(p)) + "</option>").join("");
+  $("adm-plaza").innerHTML = opcionesPlaza("");
+  const ajustarPlazaAlta = () => { const adm = $("adm-rol").value === "admin"; if (adm) $("adm-plaza").value = ""; $("adm-plaza").disabled = adm; };
+  $("adm-rol").addEventListener("change", ajustarPlazaAlta);
 
   async function revisarAdmin() {
     const r = await sb.rpc("es_admin");
@@ -1101,12 +1124,13 @@ td.empty { color: var(--muted); }
     const yo = miEmpleado();
     const t = $("adm-tabla");
     if (!usuarios.length) { t.innerHTML = '<tbody><tr><td class="empty-state" style="position:static">Todavía no hay usuarios.</td></tr></tbody>'; return; }
-    t.innerHTML = "<thead><tr><th>Empleado</th><th class='izq'>Nombre</th><th class='izq'>Rol</th><th class='izq'>Estado</th><th class='izq'>Último acceso</th><th></th></tr></thead><tbody>" +
+    t.innerHTML = "<thead><tr><th>Empleado</th><th class='izq'>Nombre</th><th class='izq'>Rol</th><th class='izq'>Plaza</th><th class='izq'>Estado</th><th class='izq'>Último acceso</th><th></th></tr></thead><tbody>" +
       usuarios.map((u) => {
         const propio = u.empleado === yo;
         return "<tr><td>" + esc(u.empleado) + (propio ? " <span class='status'>(tú)</span>" : "") + "</td><td class='izq'>" + esc(u.nombre) + "</td><td class='izq'>" +
           '<select class="rol-sel" data-emp="' + esc(u.empleado) + '"' + (propio ? " disabled title='No puedes cambiar tu propio rol'" : "") + ">" +
           '<option value="captura"' + (u.rol === "captura" ? " selected" : "") + ">Captura</option><option value=\"admin\"" + (u.rol === "admin" ? " selected" : "") + ">Admin</option></select></td>" +
+          "<td class='izq'><select class=\"rol-sel plaza-sel\" data-emp=\"" + esc(u.empleado) + '"' + (u.rol === "admin" ? " disabled title='Un admin ve las 4 plazas'" : "") + ">" + opcionesPlaza(u.plaza) + "</select></td>" +
           "<td class='izq'>" + (u.debe_cambiar ? '<span class="estado pend">Pendiente de crear contraseña</span>' : '<span class="estado ok">Activo</span>') + "</td>" +
           "<td class='izq'>" + fmtFecha(u.ultimo_acceso) + "</td><td><div class='adm-acc'>" +
           '<button type="button" class="btn ghost small" data-acc="restablecer" data-emp="' + esc(u.empleado) + '">Restablecer contraseña</button>' +
@@ -1131,14 +1155,15 @@ td.empty { color: var(--muted); }
   $("adm-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const num = $("adm-num").value.trim().toLowerCase(), nombre = $("adm-nombre").value.trim().replace(/\s+/g, " "), rol = $("adm-rol").value;
+    const plaza = rol === "admin" ? "" : $("adm-plaza").value;
     if (!/^[a-z0-9-]{1,20}$/.test(num)) { $("adm-msg").textContent = "El número de empleado solo puede tener letras, números o guion."; return; }
     $("adm-alta-btn").disabled = true; $("adm-msg").textContent = "Dando de alta…";
-    const r = await sb.rpc("admin_alta_usuario", { p_empleado: num, p_nombre: nombre, p_rol: rol });
+    const r = await sb.rpc("admin_alta_usuario", { p_empleado: num, p_nombre: nombre, p_rol: rol, p_plaza: plaza || null });
     $("adm-alta-btn").disabled = false;
     if (r.error) { $("adm-msg").textContent = "No se dio de alta. " + msgAdmin(r.error); return; }
-    $("adm-msg").textContent = "Alta lista: " + num + " (" + (rol === "admin" ? "Admin" : "Captura") + ").";
+    $("adm-msg").textContent = "Alta lista: " + num + " (" + (rol === "admin" ? "Admin" : "Captura") + ", " + plazaTxt(plaza) + ").";
     mostrarPw(num, nombre, r.data);
-    $("adm-num").value = ""; $("adm-nombre").value = ""; $("adm-rol").value = "captura";
+    $("adm-num").value = ""; $("adm-nombre").value = ""; $("adm-rol").value = "captura"; ajustarPlazaAlta();
     cargarUsuarios();
   });
 
@@ -1146,6 +1171,12 @@ td.empty { color: var(--muted); }
     const s = e.target.closest(".rol-sel");
     if (!s) return;
     s.disabled = true;
+    if (s.classList.contains("plaza-sel")) {
+      const r = await sb.rpc("admin_cambiar_plaza", { p_empleado: s.dataset.emp, p_plaza: s.value || null });
+      $("adm-msg").textContent = r.error ? "No se cambió la plaza. " + msgAdmin(r.error) : s.dataset.emp + " ahora ve: " + plazaTxt(s.value) + ". Aplica la próxima vez que entre o recargue.";
+      cargarUsuarios();
+      return;
+    }
     const r = await sb.rpc("admin_cambiar_rol", { p_empleado: s.dataset.emp, p_rol: s.value });
     $("adm-msg").textContent = r.error ? "No se cambió el rol. " + msgAdmin(r.error) : "Rol de " + s.dataset.emp + " cambiado a " + (s.value === "admin" ? "Admin" : "Captura") + ".";
     cargarUsuarios();
